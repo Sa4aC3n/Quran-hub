@@ -1,0 +1,6 @@
+{
+  "name": "القرآن الكريم",
+  "description": "تطبيق شامل للقرآن الكريم: استماع لتلاوات نخبة القراء، وقراءة المصحف الشريف بالرسم العثماني مع التفسير والفواصل المرجعية ودعم التشغيل دون إنترنت.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

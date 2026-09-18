@@ -1,0 +1,458 @@
+{
+  "surahs": [
+    {"number": 1, "name": "الفاتحة", "englishName": "Al-Fatiha", "ayahs": 7, "type": "مكية"},
+    {"number": 2, "name": "البقرة", "englishName": "Al-Baqarah", "ayahs": 286, "type": "مدنية"},
+    {"number": 3, "name": "آل عمران", "englishName": "Aal-Imran", "ayahs": 200, "type": "مدنية"},
+    {"number": 4, "name": "النساء", "englishName": "An-Nisa", "ayahs": 176, "type": "مدنية"},
+    {"number": 5, "name": "المائدة", "englishName": "Al-Ma'idah", "ayahs": 120, "type": "مدنية"},
+    {"number": 6, "name": "الأنعام", "englishName": "Al-An'am", "ayahs": 165, "type": "مكية"},
+    {"number": 7, "name": "الأعراف", "englishName": "Al-A'raf", "ayahs": 206, "type": "مكية"},
+    {"number": 8, "name": "الأنفال", "englishName": "Al-Anfal", "ayahs": 75, "type": "مدنية"},
+    {"number": 9, "name": "التوبة", "englishName": "At-Tawbah", "ayahs": 129, "type": "مدنية"},
+    {"number": 10, "name": "يونس", "englishName": "Yunus", "ayahs": 109, "type": "مكية"},
+    {"number": 11, "name": "هود", "englishName": "Hud", "ayahs": 123, "type": "مكية"},
+    {"number": 12, "name": "يوسف", "englishName": "Yusuf", "ayahs": 111, "type": "مكية"},
+    {"number": 13, "name": "الرعد", "englishName": "Ar-Ra'd", "ayahs": 43, "type": "مدنية"},
+    {"number": 14, "name": "إبراهيم", "englishName": "Ibrahim", "ayahs": 52, "type": "مكية"},
+    {"number": 15, "name": "الحجر", "englishName": "Al-Hijr", "ayahs": 99, "type": "مكية"},
+    {"number": 16, "name": "النحل", "englishName": "An-Nahl", "ayahs": 128, "type": "مكية"},
+    {"number": 17, "name": "الإسراء", "englishName": "Al-Isra", "ayahs": 111, "type": "مكية"},
+    {"number": 18, "name": "الكهف", "englishName": "Al-Kahf", "ayahs": 110, "type": "مكية"},
+    {"number": 19, "name": "مريم", "englishName": "Maryam", "ayahs": 98, "type": "مكية"},
+    {"number": 20, "name": "طه", "englishName": "Ta-Ha", "ayahs": 135, "type": "مكية"},
+    {"number": 21, "name": "الأنبياء", "englishName": "Al-Anbiya", "ayahs": 112, "type": "مكية"},
+    {"number": 22, "name": "الحج", "englishName": "Al-Hajj", "ayahs": 78, "type": "مدنية"},
+    {"number": 23, "name": "المؤمنون", "englishName": "Al-Mu'minun", "ayahs": 118, "type": "مكية"},
+    {"number": 24, "name": "النور", "englishName": "An-Nur", "ayahs": 64, "type": "مدنية"},
+    {"number": 25, "name": "الفرقان", "englishName": "Al-Furqan", "ayahs": 77, "type": "مكية"},
+    {"number": 26, "name": "الشعراء", "englishName": "Ash-Shu'ara", "ayahs": 227, "type": "مكية"},
+    {"number": 27, "name": "النمل", "englishName": "An-Naml", "ayahs": 93, "type": "مكية"},
+    {"number": 28, "name": "القصص", "englishName": "Al-Qasas", "ayahs": 88, "type": "مكية"},
+    {"number": 29, "name": "العنكبوت", "englishName": "Al-Ankabut", "ayahs": 69, "type": "مكية"},
+    {"number": 30, "name": "الروم", "englishName": "Ar-Rum", "ayahs": 60, "type": "مكية"},
+    {"number": 31, "name": "لقمان", "englishName": "Luqman", "ayahs": 34, "type": "مكية"},
+    {"number": 32, "name": "السجدة", "englishName": "As-Sajdah", "ayahs": 30, "type": "مكية"},
+    {"number": 33, "name": "الأحزاب", "englishName": "Al-Ahzab", "ayahs": 73, "type": "مدنية"},
+    {"number": 34, "name": "سبأ", "englishName": "Saba", "ayahs": 54, "type": "مكية"},
+    {"number": 35, "name": "فاطر", "englishName": "Fatir", "ayahs": 45, "type": "مكية"},
+    {"number": 36, "name": "يس", "englishName": "Ya-Sin", "ayahs": 83, "type": "مكية"},
+    {"number": 37, "name": "الصافات", "englishName": "As-Saffat", "ayahs": 182, "type": "مكية"},
+    {"number": 38, "name": "ص", "englishName": "Sad", "ayahs": 88, "type": "مكية"},
+    {"number": 39, "name": "الزمر", "englishName": "Az-Zumar", "ayahs": 75, "type": "مكية"},
+    {"number": 40, "name": "غافر", "englishName": "Ghafir", "ayahs": 85, "type": "مكية"},
+    {"number": 41, "name": "فصلت", "englishName": "Fussilat", "ayahs": 54, "type": "مكية"},
+    {"number": 42, "name": "الشورى", "englishName": "Ash-Shura", "ayahs": 53, "type": "مكية"},
+    {"number": 43, "name": "الزخرف", "englishName": "Az-Zukhruf", "ayahs": 89, "type": "مكية"},
+    {"number": 44, "name": "الدخان", "englishName": "Ad-Dukhan", "ayahs": 59, "type": "مكية"},
+    {"number": 45, "name": "الجاثية", "englishName": "Al-Jathiyah", "ayahs": 37, "type": "مكية"},
+    {"number": 46, "name": "الأحقاف", "englishName": "Al-Ahqaf", "ayahs": 35, "type": "مكية"},
+    {"number": 47, "name": "محمد", "englishName": "Muhammad", "ayahs": 38, "type": "مدنية"},
+    {"number": 48, "name": "الفتح", "englishName": "Al-Fath", "ayahs": 29, "type": "مدنية"},
+    {"number": 49, "name": "الحجرات", "englishName": "Al-Hujurat", "ayahs": 18, "type": "مدنية"},
+    {"number": 50, "name": "ق", "englishName": "Qaf", "ayahs": 45, "type": "مكية"},
+    {"number": 51, "name": "الذاريات", "englishName": "Adh-Dhariyat", "ayahs": 60, "type": "مكية"},
+    {"number": 52, "name": "الطور", "englishName": "At-Tur", "ayahs": 49, "type": "مكية"},
+    {"number": 53, "name": "النجم", "englishName": "An-Najm", "ayahs": 62, "type": "مكية"},
+    {"number": 54, "name": "القمر", "englishName": "Al-Qamar", "ayahs": 55, "type": "مكية"},
+    {"number": 55, "name": "الرحمن", "englishName": "Ar-Rahman", "ayahs": 78, "type": "مدنية"},
+    {"number": 56, "name": "الواقعة", "englishName": "Al-Waqi'ah", "ayahs": 96, "type": "مكية"},
+    {"number": 57, "name": "الحديد", "englishName": "Al-Hadid", "ayahs": 29, "type": "مدنية"},
+    {"number": 58, "name": "المجادلة", "englishName": "Al-Mujadila", "ayahs": 22, "type": "مدنية"},
+    {"number": 59, "name": "الحشر", "englishName": "Al-Hashr", "ayahs": 24, "type": "مدنية"},
+    {"number": 60, "name": "الممتحنة", "englishName": "Al-Mumtahanah", "ayahs": 13, "type": "مدنية"},
+    {"number": 61, "name": "الصف", "englishName": "As-Saff", "ayahs": 14, "type": "مدنية"},
+    {"number": 62, "name": "الجمعة", "englishName": "Al-Jumu'ah", "ayahs": 11, "type": "مدنية"},
+    {"number": 63, "name": "المنافقون", "englishName": "Al-Munafiqun", "ayahs": 11, "type": "مدنية"},
+    {"number": 64, "name": "التغابن", "englishName": "At-Taghabun", "ayahs": 18, "type": "مدنية"},
+    {"number": 65, "name": "الطلاق", "englishName": "At-Talaq", "ayahs": 12, "type": "مدنية"},
+    {"number": 66, "name": "التحريم", "englishName": "At-Tahrim", "ayahs": 12, "type": "مدنية"},
+    {"number": 67, "name": "الملك", "englishName": "Al-Mulk", "ayahs": 30, "type": "مكية"},
+    {"number": 68, "name": "القلم", "englishName": "Al-Qalam", "ayahs": 52, "type": "مكية"},
+    {"number": 69, "name": "الحاقة", "englishName": "Al-Haqqah", "ayahs": 52, "type": "مكية"},
+    {"number": 70, "name": "المعارج", "englishName": "Al-Ma'arij", "ayahs": 44, "type": "مكية"},
+    {"number": 71, "name": "نوح", "englishName": "Nuh", "ayahs": 28, "type": "مكية"},
+    {"number": 72, "name": "الجن", "englishName": "Al-Jinn", "ayahs": 28, "type": "مكية"},
+    {"number": 73, "name": "المزمل", "englishName": "Al-Muzzammil", "ayahs": 20, "type": "مكية"},
+    {"number": 74, "name": "المدثر", "englishName": "Al-Muddaththir", "ayahs": 56, "type": "مكية"},
+    {"number": 75, "name": "القيامة", "englishName": "Al-Qiyamah", "ayahs": 40, "type": "مكية"},
+    {"number": 76, "name": "الإنسان", "englishName": "Al-Insan", "ayahs": 31, "type": "مدنية"},
+    {"number": 77, "name": "المرسلات", "englishName": "Al-Mursalat", "ayahs": 50, "type": "مكية"},
+    {"number": 78, "name": "النبأ", "englishName": "An-Naba", "ayahs": 40, "type": "مكية"},
+    {"number": 79, "name": "النازعات", "englishName": "An-Nazi'at", "ayahs": 46, "type": "مكية"},
+    {"number": 80, "name": "عبس", "englishName": "Abasa", "ayahs": 42, "type": "مكية"},
+    {"number": 81, "name": "التكوير", "englishName": "At-Takwir", "ayahs": 29, "type": "مكية"},
+    {"number": 82, "name": "الانفطار", "englishName": "Al-Infitar", "ayahs": 19, "type": "مكية"},
+    {"number": 83, "name": "المطففين", "englishName": "Al-Mutaffifin", "ayahs": 36, "type": "مكية"},
+    {"number": 84, "name": "الانشقاق", "englishName": "Al-Inshiqaq", "ayahs": 25, "type": "مكية"},
+    {"number": 85, "name": "البروج", "englishName": "Al-Buruj", "ayahs": 22, "type": "مكية"},
+    {"number": 86, "name": "الطارق", "englishName": "At-Tariq", "ayahs": 17, "type": "مكية"},
+    {"number": 87, "name": "الأعلى", "englishName": "Al-A'la", "ayahs": 19, "type": "مكية"},
+    {"number": 88, "name": "الغاشية", "englishName": "Al-Ghashiyah", "ayahs": 26, "type": "مكية"},
+    {"number": 89, "name": "الفجر", "englishName": "Al-Fajr", "ayahs": 30, "type": "مكية"},
+    {"number": 90, "name": "البلد", "englishName": "Al-Balad", "ayahs": 20, "type": "مكية"},
+    {"number": 91, "name": "الشمس", "englishName": "Ash-Shams", "ayahs": 15, "type": "مكية"},
+    {"number": 92, "name": "الليل", "englishName": "Al-Layl", "ayahs": 21, "type": "مكية"},
+    {"number": 93, "name": "الضحى", "englishName": "Ad-Duha", "ayahs": 11, "type": "مكية"},
+    {"number": 94, "name": "الشرح", "englishName": "Ash-Sharh", "ayahs": 8, "type": "مكية"},
+    {"number": 95, "name": "التين", "englishName": "At-Tin", "ayahs": 8, "type": "مكية"},
+    {"number": 96, "name": "العلق", "englishName": "Al-Alaq", "ayahs": 19, "type": "مكية"},
+    {"number": 97, "name": "القدر", "englishName": "Al-Qadr", "ayahs": 5, "type": "مكية"},
+    {"number": 98, "name": "البينة", "englishName": "Al-Bayyinah", "ayahs": 8, "type": "مدنية"},
+    {"number": 99, "name": "الزلزلة", "englishName": "Az-Zalzalah", "ayahs": 8, "type": "مدنية"},
+    {"number": 100, "name": "العاديات", "englishName": "Al-Adiyat", "ayahs": 11, "type": "مكية"},
+    {"number": 101, "name": "القارعة", "englishName": "Al-Qari'ah", "ayahs": 11, "type": "مكية"},
+    {"number": 102, "name": "التكاثر", "englishName": "At-Takathur", "ayahs": 8, "type": "مكية"},
+    {"number": 103, "name": "العصر", "englishName": "Al-Asr", "ayahs": 3, "type": "مكية"},
+    {"number": 104, "name": "الهمزة", "englishName": "Al-Humazah", "ayahs": 9, "type": "مكية"},
+    {"number": 105, "name": "الفيل", "englishName": "Al-Fil", "ayahs": 5, "type": "مكية"},
+    {"number": 106, "name": "قريش", "englishName": "Quraysh", "ayahs": 4, "type": "مكية"},
+    {"number": 107, "name": "الماعون", "englishName": "Al-Ma'un", "ayahs": 7, "type": "مكية"},
+    {"number": 108, "name": "الكوثر", "englishName": "Al-Kawthar", "ayahs": 3, "type": "مكية"},
+    {"number": 109, "name": "الكافرون", "englishName": "Al-Kafirun", "ayahs": 6, "type": "مكية"},
+    {"number": 110, "name": "النصر", "englishName": "An-Nasr", "ayahs": 3, "type": "مدنية"},
+    {"number": 111, "name": "المسد", "englishName": "Al-Masad", "ayahs": 5, "type": "مكية"},
+    {"number": 112, "name": "الإخلاص", "englishName": "Al-Ikhlas", "ayahs": 4, "type": "مكية"},
+    {"number": 113, "name": "الفلق", "englishName": "Al-Falaq", "ayahs": 5, "type": "مكية"},
+    {"number": 114, "name": "الناس", "englishName": "An-Nas", "ayahs": 6, "type": "مكية"}
+  ],
+  "reciters": [
+    {
+      "id": "mohamed_refaat",
+      "name": "محمد رفعت",
+      "riwayah": "حفص عن عاصم",
+      "style": "مجود",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server14.mp3quran.net/refat/{num3}.mp3",
+        "https://archive.org/download/Mohamed_Refaat_Quran_Rare_Archive/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mohammad_refaat/{num3}.mp3",
+        "https://ia800200.us.archive.org/20/items/Mohamed_Refaat_Quran/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "mishari_alafasy",
+      "name": "مشاري راشد العفاسي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "الكويت",
+      "serverTemplates": [
+        "https://server8.mp3quran.net/afs/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/{num}.mp3",
+        "https://ia800301.us.archive.org/20/items/Alafasy_Complete_Quran_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abdulbasit_murattal",
+      "name": "عبد الباسط عبد الصمد",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server7.mp3quran.net/basit/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abdulbaset_mujawwad/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.abdulbasitmurattal/{num}.mp3",
+        "https://ia802808.us.archive.org/16/items/Abdul_Basit_Murattal_192kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abdulbasit_mujawwad",
+      "name": "عبد الباسط عبد الصمد",
+      "riwayah": "حفص عن عاصم",
+      "style": "مجود",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server7.mp3quran.net/basit/Almusshaf-Al-Mojawwad/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abdul_basit_mujawwad/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.abdulbasitmujawwad/{num}.mp3",
+        "https://ia800200.us.archive.org/30/items/AbdulBaset-Mujawwad/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "mahmoud_al_hussary",
+      "name": "محمود خليل الحصري",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server13.mp3quran.net/husr/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mahmood_khaleel_al-husaree/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.husary/{num}.mp3",
+        "https://ia800705.us.archive.org/31/items/Mahmoud_Khaleel_Al-Hussary_Murattal/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "al_hussary_mujawwad",
+      "name": "محمود خليل الحصري",
+      "riwayah": "حفص عن عاصم",
+      "style": "مجود",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server13.mp3quran.net/husr/Almusshaf-Al-Mojawwad/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mahmood_khaleel_al-husaree_mujawwad/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.husarymujawwad/{num}.mp3",
+        "https://ia800504.us.archive.org/11/items/Mahmoud_Khalil_Al-Hussary_Mujawwad/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "mohammad_siddiq_al_minshawi",
+      "name": "محمد صديق المنشاوي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server10.mp3quran.net/minsh/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/muhammad_siddeeq_al-minshaawee/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.minshawi/{num}.mp3",
+        "https://ia800201.us.archive.org/22/items/Mohammad_Siddiq_Al-Minshawi_Murattal/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "al_minshawi_mujawwad",
+      "name": "محمد صديق المنشاوي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مجود",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server10.mp3quran.net/minsh/Almusshaf-Al-Mojawwad/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/muhammad_siddeeq_al-minshaawee_mujawwad/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.minshawimujawwad/{num}.mp3",
+        "https://ia800305.us.archive.org/3/items/Muhammad_Siddiq_Al-Minshawi_Mujawwad/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "maher_al_muaiqly",
+      "name": "ماهر المعيقلي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية - مكة",
+      "serverTemplates": [
+        "https://server12.mp3quran.net/maher/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/maher_almu3aiqly/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.mahermuaiqly/{num}.mp3",
+        "https://ia800303.us.archive.org/21/items/Maher_Al-Muaiqly_Complete_Quran/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "saad_al_ghamdi",
+      "name": "سعد الغامدي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server7.mp3quran.net/s_gmd/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/sa3d_al-ghaamidee/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.saadalghamidi/{num}.mp3",
+        "https://ia800304.us.archive.org/19/items/Saad_Al-Ghamdi_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abdul_rahman_al_sudais",
+      "name": "عبد الرحمن السديس",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية - الحرم المكي",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/sds/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abdurrahmaan_as-sudays/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.abdurrahmaansudais/{num}.mp3",
+        "https://ia800302.us.archive.org/8/items/Abdul_Rahman_Al-Sudais_192kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "saud_al_shuraim",
+      "name": "سعود الشريم",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية - الحرم المكي",
+      "serverTemplates": [
+        "https://server7.mp3quran.net/shur/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/sa3ood_al-shuraym/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.saoodshuraym/{num}.mp3",
+        "https://ia800303.us.archive.org/28/items/Saood_Ash-Shuraym_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abu_bakr_al_shatri",
+      "name": "أبو بكر الشاطري",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/shatri/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abu_bakr_ash-shaatree/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.shaatree/{num}.mp3",
+        "https://ia800300.us.archive.org/2/items/Abu_Bakr_Ash-Shatri_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "yasser_al_dosari",
+      "name": "ياسر الدوسري",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية - الحرم المكي",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/yasser/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/yasser_ad-dussary/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.yasseraldossari/{num}.mp3",
+        "https://ia800707.us.archive.org/2/items/Yasser_Al-Dossari_Complete_Quran/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "nasser_al_qatami",
+      "name": "ناصر القطامي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server6.mp3quran.net/qtm/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/nasser_alqatami/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.nasseralqatami/{num}.mp3",
+        "https://ia800305.us.archive.org/21/items/Nasser_Al-Qatami_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "ahmed_al_ajmi",
+      "name": "أحمد بن علي العجمي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server10.mp3quran.net/ajm/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/ahmed_ibn_3alee_al-3ajamy/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.ahmedajamy/{num}.mp3",
+        "https://ia800300.us.archive.org/20/items/Ahmed_Al-Ajmi_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "fares_abbad",
+      "name": "فارس عباد",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "اليمن",
+      "serverTemplates": [
+        "https://server8.mp3quran.net/frs_a/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/fares/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.faresabbad/{num}.mp3",
+        "https://ia800306.us.archive.org/1/items/Fares_Abbad_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "idrees_abkar",
+      "name": "إدريس أبكر",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server6.mp3quran.net/abkr/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/idrees_abkar/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.idreesabkar/{num}.mp3",
+        "https://ia800304.us.archive.org/26/items/Idrees_Abkar_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "ali_jaber",
+      "name": "علي عبد الله جابر",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية - الحرم المكي",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/a_jbr/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/ali_jaber/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.alijaber/{num}.mp3",
+        "https://ia800305.us.archive.org/18/items/Ali_Jaber_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "khalid_al_jalil",
+      "name": "خالد الجليل",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "السعودية",
+      "serverTemplates": [
+        "https://server10.mp3quran.net/jleel/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/khalid_al-jaleel/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.khalidaljaleel/{num}.mp3",
+        "https://ia800806.us.archive.org/31/items/Khalid_Al-Jalil_Complete_Quran/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "hazaa_al_balushi",
+      "name": "هزاع البلوشي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "عمان",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/haza/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/hazaa_albalushi/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.hazaalbalushi/{num}.mp3",
+        "https://ia801509.us.archive.org/4/items/Hazaa_Al-Balushi_Quran/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "yassin_al_jazairi",
+      "name": "ياسين الجزائري",
+      "riwayah": "ورش عن نافع",
+      "style": "مرتل",
+      "location": "الجزائر",
+      "serverTemplates": [
+        "https://server11.mp3quran.net/jaza/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/yasin_al-jaza-iree_warsh/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.yasinaljazairi/{num}.mp3",
+        "https://ia800305.us.archive.org/16/items/Yasin_Al-Jazairi_Warsh/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abdulrashid_sufi_soussi",
+      "name": "عبد الرشيد صوفي",
+      "riwayah": "السوسي عن أبي عمرو",
+      "style": "مرتل",
+      "location": "الصومال / قطر",
+      "serverTemplates": [
+        "https://server16.mp3quran.net/soufi/Rewayat-Al-Sousi-an-Abi-Amr/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abdul_rasheed_soufi_as-soosi/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.abdulrasheedsoufi/{num}.mp3",
+        "https://ia800308.us.archive.org/8/items/Abdul_Rashid_Sufi_Soosi/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "abdulrashid_sufi_khalaf",
+      "name": "عبد الرشيد صوفي",
+      "riwayah": "خلف عن حمزة",
+      "style": "مرتل",
+      "location": "الصومال / قطر",
+      "serverTemplates": [
+        "https://server16.mp3quran.net/soufi/Rewayat-Khalaf-A-n-Hamzah/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/abdul_rasheed_soufi_khalaf/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.abdulrasheedkhalaf/{num}.mp3",
+        "https://ia800308.us.archive.org/8/items/Abdul_Rashid_Sufi_Khalaf/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "mohamed_al_tablawi",
+      "name": "محمد محمود الطبلاوي",
+      "riwayah": "حفص عن عاصم",
+      "style": "مرتل",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server12.mp3quran.net/tblwi/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mohammad_al-tablaway/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.tablaway/{num}.mp3",
+        "https://ia800303.us.archive.org/16/items/Mohammad_Al-Tablaway_128kbps/{num3}.mp3"
+      ]
+    },
+    {
+      "id": "mustafa_ismail",
+      "name": "مصطفى إسماعيل",
+      "riwayah": "حفص عن عاصم",
+      "style": "مجود",
+      "location": "مصر",
+      "serverTemplates": [
+        "https://server8.mp3quran.net/mustafa/Almusshaf-Al-Mojawwad/{num3}.mp3",
+        "https://download.quranicaudio.com/quran/mustafa_ismail_mujawwad/{num3}.mp3",
+        "https://cdn.islamic.network/quran/audio-surah/128/ar.mustafaismail/{num}.mp3",
+        "https://ia800301.us.archive.org/14/items/Mustafa_Ismail_Mujawwad/{num3}.mp3"
+      ]
+    }
+  ]
+}
