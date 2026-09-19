@@ -18,6 +18,7 @@ import com.example.data.model.BulkDownloadProgress
 import com.example.data.model.BulkDownloadStatus
 import com.example.data.model.DownloadState
 import com.example.data.model.OfflineTextDownloadState
+import com.example.data.model.QuranTextUiState
 import com.example.data.model.Playlist
 import com.example.data.model.PlaylistItem
 import com.example.data.model.PlayerEvent
@@ -36,6 +37,7 @@ import com.example.data.model.SurahAudioItem
 import com.example.data.model.SurahText
 import com.example.data.model.SyncStatistics
 import com.example.data.provider.AyahTiming
+import com.example.data.provider.PersistenceResult
 import com.example.data.provider.QuranTimingManager
 import com.example.data.provider.SurahTiming
 import com.example.data.provider.TafseerManager
@@ -52,6 +54,7 @@ import com.example.playback.AudioPlayerManager
 import com.example.prayer.manager.PrayerManager
 import com.example.watch.MeetingModeManager
 import com.example.watch.SmartwatchBridgeManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -223,6 +226,12 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
     // Custom Playlists State
     val playlists: StateFlow<List<Playlist>> = repository.playlistsFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    private var loadSurahJob: Job? = null
+    private var currentSurahRequestId: Long = 0L
+
+    private val _quranTextUiState = MutableStateFlow<QuranTextUiState>(QuranTextUiState.Idle(1))
+    val quranTextUiState: StateFlow<QuranTextUiState> = _quranTextUiState.asStateFlow()
 
     private val _currentSurahText = MutableStateFlow<SurahText?>(null)
     val currentSurahText: StateFlow<SurahText?> = _currentSurahText.asStateFlow()
@@ -983,24 +992,14 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
 
     fun downloadAllQuranTexts() {
         viewModelScope.launch {
-            val allSurahs = if (_surahs.value.isNotEmpty()) _surahs.value else {
-                (1..com.example.data.provider.QuranManifest.TOTAL_SURAHS).map {
-                    Surah(
-                        number = it,
-                        name = com.example.data.provider.QuranManifest.getSurahNameArabic(it),
-                        englishName = "",
-                        ayahs = com.example.data.provider.QuranManifest.getCanonicalAyahCount(it),
-                        type = ""
-                    )
-                }
-            }
             _snackbarMessage.emit("بدء حفظ نصوص المصحف الشريف كاملاً (114 سورة) للاستخدام دون اتصال...")
             downloadManager.downloadAllQuranTexts(
-                surahs = allSurahs,
                 fetcher = { surahNum ->
                     try {
-                        val text = repository.getSurahText(surahNum)
-                        com.example.data.provider.QuranManifest.validateSurah(text) is com.example.data.provider.QuranManifest.ValidationResult.Valid
+                        val persistResult = repository.ensureSurahPersisted(surahNum)
+                        persistResult is PersistenceResult.Success
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         false
                     }
@@ -1010,7 +1009,7 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
                         if (success) {
                             _snackbarMessage.emit("تم حفظ نصوص المصحف الشريف كاملاً (114 سورة) بنجاح للاستخدام دون اتصال")
                         } else {
-                            _snackbarMessage.emit("تم حفظ $count من 114 سورة للاستخدام دون اتصال")
+                            _snackbarMessage.emit("تم حفظ $count من أصل 114 سورة. يمكنك إعادة المحاولة لاستكمال السور الناقصة.")
                         }
                     }
                 }
@@ -1054,17 +1053,41 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
 
     // Quran Reader Functions
     fun loadSurahText(surahNumber: Int) {
-        viewModelScope.launch {
-            _isLoadingSurahText.value = true
+        loadSurahJob?.cancel()
+        val requestId = ++currentSurahRequestId
+
+        // Ensure old text from another surah is not rendered under new surah's identity
+        if (_currentSurahText.value?.number != surahNumber) {
+            _currentSurahText.value = null
+        }
+        _quranTextUiState.value = QuranTextUiState.Loading(surahNumber)
+        _isLoadingSurahText.value = true
+
+        loadSurahJob = viewModelScope.launch {
             try {
                 val text = repository.getSurahText(surahNumber)
-                _currentSurahText.value = text
-                loadTimingForSurah(surahNumber, _selectedReciter.value)
+                if (requestId == currentSurahRequestId && text.number == surahNumber) {
+                    _currentSurahText.value = text
+                    _quranTextUiState.value = QuranTextUiState.Success(
+                        surahNumber = surahNumber,
+                        surahText = text,
+                        isLocal = repository.isSurahDownloaded(surahNumber)
+                    )
+                    loadTimingForSurah(surahNumber, _selectedReciter.value)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                e.printStackTrace()
-                _snackbarMessage.emit("تعذر تحميل نص السورة، يرجى التحقق من الاتصال")
+                if (requestId == currentSurahRequestId) {
+                    _currentSurahText.value = null
+                    val msg = "تعذر تحميل نص سورة ${com.example.data.provider.QuranManifest.getSurahNameArabic(surahNumber)} دون اتصال بالإنترنت"
+                    _quranTextUiState.value = QuranTextUiState.Unavailable(surahNumber, msg)
+                    _snackbarMessage.emit(msg)
+                }
             } finally {
-                _isLoadingSurahText.value = false
+                if (requestId == currentSurahRequestId) {
+                    _isLoadingSurahText.value = false
+                }
             }
         }
     }

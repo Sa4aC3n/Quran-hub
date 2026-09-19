@@ -190,13 +190,15 @@ fun QuranReaderScreen(
         }
     }
 
-    // Save reading progress on open
-    LaunchedEffect(currentSurahNumber, surahText) {
-        if (currentSurahMeta != null && surahText != null) {
+    val isSurahValid = surahText != null && surahText.number == currentSurahNumber
+
+    // Save reading progress on open strictly when surah text matches current surah identity
+    LaunchedEffect(currentSurahNumber, isSurahValid) {
+        if (currentSurahMeta != null && isSurahValid && surahText != null) {
             val firstAyah = surahText.ayahs.firstOrNull()
             onSaveProgress(
-                currentSurahNumber,
-                currentSurahMeta.name,
+                surahText.number,
+                surahText.name,
                 firstAyah?.numberInSurah ?: 1,
                 firstAyah?.page ?: 1,
                 firstAyah?.juz ?: 1
@@ -349,7 +351,7 @@ fun QuranReaderScreen(
                         )
                     }
                 }
-            } else if (surahText != null) {
+            } else if (isSurahValid && surahText != null) {
                 if (displayMode == QuranDisplayMode.AYAH_BY_AYAH) {
                     // Ayah by Ayah List View
                     LazyColumn(
@@ -381,14 +383,14 @@ fun QuranReaderScreen(
                         }
 
                         // Ayahs
-                        items(surahText.ayahs, key = { it.number }) { ayah ->
+                        items(surahText.ayahs, key = { "${surahText.number}_${it.numberInSurah}" }) { ayah ->
                             val isBookmarked = bookmarks.any {
-                                it.surahNumber == currentSurahNumber && it.ayahNumber == ayah.numberInSurah
+                                it.surahNumber == surahText.number && it.ayahNumber == ayah.numberInSurah
                             }
 
                             val cleanText = QuranTextProvider.cleanBismillahFromVerse(
                                 ayah.text,
-                                currentSurahNumber,
+                                surahText.number,
                                 ayah.numberInSurah
                             )
 
@@ -396,8 +398,8 @@ fun QuranReaderScreen(
 
                             AyahCardItem(
                                 ayah = ayah,
-                                surahName = currentSurahMeta?.name ?: "",
-                                surahNumber = currentSurahNumber,
+                                surahName = surahText.name,
+                                surahNumber = surahText.number,
                                 fontScale = readerFontScale,
                                 textColor = textColor,
                                 accentColor = accentColor,
@@ -411,13 +413,13 @@ fun QuranReaderScreen(
                                 onBookmarkToggle = {
                                     if (isBookmarked) {
                                         val bm = bookmarks.find {
-                                            it.surahNumber == currentSurahNumber && it.ayahNumber == ayah.numberInSurah
+                                            it.surahNumber == surahText.number && it.ayahNumber == ayah.numberInSurah
                                         }
                                         if (bm != null) onDeleteBookmark(bm.id)
                                     } else {
                                         onAddBookmark(
-                                            currentSurahNumber,
-                                            currentSurahMeta?.name ?: "",
+                                            surahText.number,
+                                            surahText.name,
                                             ayah.numberInSurah,
                                             ayah.page,
                                             ayah.juz,
@@ -429,7 +431,7 @@ fun QuranReaderScreen(
                                 onShowTafsir = {
                                     selectedAyahForAction = ayah
                                     showTafsirSheet = true
-                                    onLoadTafseer(ayah, currentSurahNumber, selectedTafseerId)
+                                    onLoadTafseer(ayah, surahText.number, selectedTafseerId)
                                 }
                             )
                         }
@@ -603,7 +605,7 @@ fun QuranReaderScreen(
                     OutlinedButton(
                         onClick = {
                             showTafsirSheet = true
-                            onLoadTafseer(ayah, currentSurahNumber, selectedTafseerId)
+                            onLoadTafseer(ayah, surahText?.number ?: currentSurahNumber, selectedTafseerId)
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor)
@@ -617,15 +619,17 @@ fun QuranReaderScreen(
                     // Bookmark Button
                     OutlinedButton(
                         onClick = {
+                            val activeSurahNum = surahText?.number ?: currentSurahNumber
+                            val activeSurahName = surahText?.name ?: currentSurahMeta?.name ?: ""
                             if (isBookmarked) {
                                 val bm = bookmarks.find {
-                                    it.surahNumber == currentSurahNumber && it.ayahNumber == ayah.numberInSurah
+                                    it.surahNumber == activeSurahNum && it.ayahNumber == ayah.numberInSurah
                                 }
                                 if (bm != null) onDeleteBookmark(bm.id)
                             } else {
                                 onAddBookmark(
-                                    currentSurahNumber,
-                                    currentSurahMeta?.name ?: "",
+                                    activeSurahNum,
+                                    activeSurahName,
                                     ayah.numberInSurah,
                                     ayah.page,
                                     ayah.juz,
@@ -788,7 +792,7 @@ fun QuranReaderScreen(
                             border = if (isSelected) null else BorderStroke(1.dp, textColor.copy(alpha = 0.2f)),
                             modifier = Modifier.clickable {
                                 onSelectTafseer(tItem.id)
-                                onLoadTafseer(ayah, currentSurahNumber, tItem.id)
+                                onLoadTafseer(ayah, surahText?.number ?: currentSurahNumber, tItem.id)
                             }
                         ) {
                             Text(
@@ -866,7 +870,7 @@ fun QuranReaderScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(
                             onClick = {
-                                onLoadTafseer(ayah, currentSurahNumber, selectedTafseerId)
+                                onLoadTafseer(ayah, surahText?.number ?: currentSurahNumber, selectedTafseerId)
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                             shape = RoundedCornerShape(8.dp)

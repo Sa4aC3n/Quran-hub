@@ -53,11 +53,20 @@ object QuranManifest {
         return if (surahNumber in 1..TOTAL_SURAHS) SURAH_NAMES_ARABIC[surahNumber] else "سورة $surahNumber"
     }
 
+    const val SCHEMA_VERSION = 2
+    const val SCRIPT_TYPE = "Uthmani"
+
     /**
      * Validates whether a SurahText is complete, authentic, and non-corrupt.
-     * Rejects placeholder generation, empty text, truncated verse lists, and broken sequencing.
+     * Rejects placeholder generation, empty text, truncated verse lists, broken sequencing,
+     * and mismatch with expectedSurahNumber.
      */
-    fun validateSurah(surah: SurahText): ValidationResult {
+    fun validateSurah(surah: SurahText, expectedSurahNumber: Int? = null): ValidationResult {
+        if (expectedSurahNumber != null && surah.number != expectedSurahNumber) {
+            return ValidationResult.Invalid(
+                "رقم السورة (${surah.number}) لا يطابق رقم السورة المطلوب ($expectedSurahNumber)"
+            )
+        }
         if (surah.number !in 1..TOTAL_SURAHS) {
             return ValidationResult.Invalid("رقم السورة ${surah.number} خارج النطاق الصحيح (1-114)")
         }

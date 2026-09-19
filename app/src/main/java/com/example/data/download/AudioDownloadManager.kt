@@ -65,8 +65,18 @@ class AudioDownloadManager(context: Context) {
         }
     }
 
+    private val textProvider = com.example.data.provider.QuranTextProvider(appContext)
+
     init {
         scanExistingDownloads()
+        val initialCount = textProvider.getDownloadedSurahsCount()
+        _offlineTextDownloadState.value = OfflineTextDownloadState(
+            isDownloading = false,
+            totalSurahs = com.example.data.provider.QuranManifest.TOTAL_SURAHS,
+            downloadedSurahs = initialCount,
+            currentSurahName = "",
+            isCompleted = (initialCount == com.example.data.provider.QuranManifest.TOTAL_SURAHS)
+        )
     }
 
     private fun getFileKey(reciterId: String, surahNumber: Int): String {
@@ -514,53 +524,77 @@ class AudioDownloadManager(context: Context) {
     }
 
     fun downloadAllQuranTexts(
-        surahs: List<Surah>,
+        surahs: List<Surah> = emptyList(),
         fetcher: suspend (Int) -> Boolean,
         onFinished: (Boolean, Int) -> Unit = { _, _ -> }
     ) {
         if (_offlineTextDownloadState.value.isDownloading) return
 
-        val validSurahs = if (surahs.isNotEmpty()) {
-            surahs.distinctBy { it.number }.sortedBy { it.number }
-        } else {
-            (1..com.example.data.provider.QuranManifest.TOTAL_SURAHS).map {
-                Surah(
-                    number = it,
-                    name = com.example.data.provider.QuranManifest.getSurahNameArabic(it),
-                    englishName = "",
-                    ayahs = com.example.data.provider.QuranManifest.getCanonicalAyahCount(it),
-                    type = ""
-                )
-            }
-        }
+        // 1. Precise canonical range 1..114, completely immune to partial UI lists
+        val totalSurahs = com.example.data.provider.QuranManifest.TOTAL_SURAHS
+        var currentDownloaded = textProvider.getDownloadedSurahsCount()
 
         _offlineTextDownloadState.value = OfflineTextDownloadState(
             isDownloading = true,
-            totalSurahs = validSurahs.size,
-            downloadedSurahs = 0,
-            currentSurahName = validSurahs.firstOrNull()?.name ?: "",
-            isCompleted = false
+            totalSurahs = totalSurahs,
+            downloadedSurahs = currentDownloaded,
+            currentSurahName = "",
+            isCompleted = (currentDownloaded == totalSurahs),
+            errorMessage = null
         )
 
         managerScope.launch {
-            var count = 0
-            for (s in validSurahs) {
+            var failedCount = 0
+            for (surahNumber in 1..totalSurahs) {
+                if (!isActive) break
+
+                val surahName = com.example.data.provider.QuranManifest.getSurahNameArabic(surahNumber)
                 _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
-                    currentSurahName = s.name
+                    currentSurahName = surahName
                 )
+
+                // 2. Only skip if already validated locally on disk
+                if (textProvider.isSurahDownloaded(surahNumber)) {
+                    currentDownloaded = textProvider.getDownloadedSurahsCount()
+                    _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
+                        downloadedSurahs = currentDownloaded
+                    )
+                    continue
+                }
+
+                // 3. Fetch and strictly persist
                 try {
-                    val success = fetcher(s.number)
-                    if (success) count++
-                } catch (_: Exception) {}
+                    val success = fetcher(surahNumber)
+                    if (success && textProvider.isSurahDownloaded(surahNumber)) {
+                        currentDownloaded = textProvider.getDownloadedSurahsCount()
+                    } else {
+                        failedCount++
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    failedCount++
+                }
+
                 _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
-                    downloadedSurahs = count
+                    downloadedSurahs = currentDownloaded,
+                    failedSurahs = failedCount
                 )
             }
+
+            // 4. Final verification of all 114 surahs on disk
+            val finalVerifiedCount = textProvider.getDownloadedSurahsCount()
+            val isAllCompleted = (finalVerifiedCount == totalSurahs)
+
             _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
                 isDownloading = false,
-                isCompleted = count == validSurahs.size
+                downloadedSurahs = finalVerifiedCount,
+                failedSurahs = totalSurahs - finalVerifiedCount,
+                isCompleted = isAllCompleted,
+                currentSurahName = "",
+                errorMessage = if (!isAllCompleted) "تم حفظ $finalVerifiedCount من أصل $totalSurahs سورة. يمكنك إعادة المحاولة لاستكمال السور الناقصة." else null
             )
-            onFinished(count == validSurahs.size, count)
+            onFinished(isAllCompleted, finalVerifiedCount)
         }
     }
 }

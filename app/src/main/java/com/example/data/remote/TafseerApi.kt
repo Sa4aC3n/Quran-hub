@@ -22,7 +22,10 @@ data class AyahTafseerResponse(
     @SerializedName("tafseer_name") val tafseerName: String = "",
     @SerializedName("ayah_url") val ayahUrl: String = "",
     @SerializedName("ayah_number") val ayahNumber: Int = 1,
-    @SerializedName("text") val text: String = ""
+    @SerializedName("surah_number") val surahNumber: Int = 1,
+    @SerializedName("text") val text: String = "",
+    @SerializedName("source_provider") val sourceProvider: String = "",
+    @SerializedName("schema_version") val schemaVersion: Int = 2
 )
 
 interface TafseerApi {

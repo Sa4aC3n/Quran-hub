@@ -46,13 +46,16 @@ import com.example.data.remote.Mp3QuranRecitersResponse
 import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
@@ -658,23 +661,33 @@ class QuranRepository(
         prefs[KEY_SURAHS_VIEW_MODE] ?: "grid_3"
     }
 
-    val appThemeFlow: Flow<String> = context.dataStore.data
-        .catch {
-            emit(androidx.datastore.preferences.core.emptyPreferences())
-        }
-        .map { prefs ->
-            val raw = prefs[KEY_APP_THEME]
-            val validatedTheme = if (raw in listOf("light", "dark", "system")) raw!! else "system"
-            // Reconcile mirror cache on every emission from DataStore (source of truth)
-            try {
-                val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
-                val current = sp.getString("app_theme", null)
-                if (current != validatedTheme) {
-                    sp.edit().putString("app_theme", validatedTheme).apply()
+    val appThemeFlow: Flow<String> = flow {
+        // 1. Emit verified local mirror immediately for zero-flicker cold-start
+        val initialTheme = getCachedAppTheme()
+        emit(initialTheme)
+
+        // 2. Collect authoritative DataStore asynchronously
+        context.dataStore.data
+            .catch { e ->
+                // Guard: Never emit empty preferences on transient failure; preserve current state
+                Log.w("QuranRepository", "DataStore read error occurred, retaining active theme", e)
+            }
+            .collect { prefs ->
+                val raw = prefs[KEY_APP_THEME]
+                if (raw != null) {
+                    val validatedTheme = if (raw in listOf("light", "dark", "system")) raw else "system"
+                    // Reconcile mirror cache on every emission from DataStore (source of truth)
+                    try {
+                        val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+                        val current = sp.getString("app_theme", null)
+                        if (current != validatedTheme) {
+                            sp.edit().putString("app_theme", validatedTheme).apply()
+                        }
+                    } catch (_: Exception) {}
+                    emit(validatedTheme)
                 }
-            } catch (_: Exception) {}
-            validatedTheme
-        }
+            }
+    }.distinctUntilChanged()
 
     val dailyReminderEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_DAILY_REMINDER_ENABLED] ?: false
@@ -737,30 +750,10 @@ class QuranRepository(
             val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
             val cached = sp.getString("app_theme", null)
             if (cached != null && cached in listOf("light", "dark", "system")) {
-                return cached
+                cached
+            } else {
+                "system"
             }
-
-            // Upgrade scenario: app_theme_prefs not initialized yet, but legacy DataStore file might exist on disk
-            val dataStoreFile = java.io.File(context.filesDir, "datastore/quran_settings.preferences_pb")
-            if (dataStoreFile.exists() && dataStoreFile.length() > 0) {
-                val bytes = dataStoreFile.readBytes()
-                val text = String(bytes, Charsets.ISO_8859_1)
-                val keyIndex = text.indexOf("app_theme")
-                if (keyIndex != -1) {
-                    val searchWindow = text.substring(keyIndex, minOf(text.length, keyIndex + 40))
-                    val migratedTheme = when {
-                        searchWindow.contains("dark") -> "dark"
-                        searchWindow.contains("light") -> "light"
-                        searchWindow.contains("system") -> "system"
-                        else -> null
-                    }
-                    if (migratedTheme != null) {
-                        sp.edit().putString("app_theme", migratedTheme).apply()
-                        return migratedTheme
-                    }
-                }
-            }
-            "system"
         } catch (_: Exception) {
             "system"
         }
@@ -900,6 +893,18 @@ class QuranRepository(
 
     suspend fun getSurahText(surahNumber: Int): SurahText {
         return textProvider.getSurahText(surahNumber)
+    }
+
+    fun isSurahDownloaded(surahNumber: Int): Boolean {
+        return textProvider.isSurahDownloaded(surahNumber)
+    }
+
+    fun getDownloadedSurahsCount(): Int {
+        return textProvider.getDownloadedSurahsCount()
+    }
+
+    suspend fun ensureSurahPersisted(surahNumber: Int): com.example.data.provider.PersistenceResult {
+        return textProvider.ensureSurahPersisted(surahNumber)
     }
 
     // Custom Playlists Repository

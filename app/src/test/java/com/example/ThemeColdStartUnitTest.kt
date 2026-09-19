@@ -59,9 +59,17 @@ class ThemeColdStartUnitTest {
         context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
             .edit().clear().commit()
 
-        // getCachedAppTheme must safely recover the existing user's selection from DataStore file on disk
-        val recoveredTheme = repository.getCachedAppTheme()
-        assertEquals("dark", recoveredTheme)
+        // Immediate cold cached read returns safe default "system" without blocking or crude file scanning
+        val initialCached = repository.getCachedAppTheme()
+        assertEquals("system", initialCached)
+
+        // Flow collection from DataStore authoritatively recovers "dark" and reconciles the mirror
+        val flowValue = repository.appThemeFlow.first { it == "dark" }
+        assertEquals("dark", flowValue)
+
+        // Verify mirror is now populated with "dark"
+        val healedCached = repository.getCachedAppTheme()
+        assertEquals("dark", healedCached)
     }
 
     @Test

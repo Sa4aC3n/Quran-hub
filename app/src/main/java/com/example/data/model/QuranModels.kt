@@ -290,9 +290,19 @@ data class OfflineTextDownloadState(
     val isDownloading: Boolean = false,
     val totalSurahs: Int = 114,
     val downloadedSurahs: Int = 0,
+    val failedSurahs: Int = 0,
     val currentSurahName: String = "",
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val errorMessage: String? = null
 )
+
+sealed class QuranTextUiState {
+    data class Idle(val surahNumber: Int = 1) : QuranTextUiState()
+    data class Loading(val surahNumber: Int) : QuranTextUiState()
+    data class Success(val surahNumber: Int, val surahText: SurahText, val isLocal: Boolean) : QuranTextUiState()
+    data class Unavailable(val surahNumber: Int, val message: String) : QuranTextUiState()
+    data class Error(val surahNumber: Int, val message: String) : QuranTextUiState()
+}
 
 data class ReviewItem(
     val identifier: String,

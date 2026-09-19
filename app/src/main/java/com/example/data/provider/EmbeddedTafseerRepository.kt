@@ -24,7 +24,10 @@ object EmbeddedTafseerRepository {
                 tafseerName = tafseerName,
                 ayahUrl = "",
                 ayahNumber = ayahNumber,
-                text = verifiedText.trim()
+                surahNumber = surahNumber,
+                text = verifiedText.trim(),
+                sourceProvider = "Embedded Classical Verified Repository",
+                schemaVersion = 2
             )
         } else {
             null
