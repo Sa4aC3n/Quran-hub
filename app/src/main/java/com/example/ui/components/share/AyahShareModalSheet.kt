@@ -205,13 +205,14 @@ fun AyahShareModalSheet(
 
                 IconButton(
                     onClick = {
+                        val playStoreUrl = "https://play.google.com/store/apps/details?id=com.aistudio.quranaudio.mskdra"
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText(
                             "Quran Ayah",
-                            "﴿ $cleanAyahText ﴾\n[سورة $surahName - الآية $selectedAyahNumber]\nبصوت القارئ: $reciterName\n✦ تطبيق إذاعات وتلاوات القرآن الكريم ✦"
+                            "﴿ $cleanAyahText ﴾\n\n[سورة $surahName - الآية $selectedAyahNumber]\nبصوت القارئ: $reciterName\n\n✦ حمّل تطبيق القرآن الكريم الآن من Google Play:\n$playStoreUrl"
                         )
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "تم نسخ نص الآية للذاكرة 📋", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "تم نسخ نص الآية ورابط التطبيق للذاكرة 📋", Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.testTag("btn_copy_ayah_text")
                 ) {
@@ -492,7 +493,7 @@ fun AyahShareModalSheet(
                             isSharingAction = true
                             scope.launch {
                                 val playStoreUrl = "https://play.google.com/store/apps/details?id=com.aistudio.quranaudio.mskdra"
-                                val caption = "﴿ $cleanAyahText ﴾\n[سورة $surahName: $selectedAyahNumber] - بصوت القارئ: $reciterName\n\n✦ تم الإنشاء والمشاركة عبر تطبيق القرآن الكريم ✦\n$playStoreUrl"
+                                val caption = "﴿ $cleanAyahText ﴾\n\n[سورة $surahName: الآية $selectedAyahNumber] • بصوت القارئ: $reciterName\n\n✦ حمّل تطبيق القرآن الكريم الآن من متجر Google Play:\n$playStoreUrl"
                                 AyahCardGenerator.shareAyahCardImage(
                                     context = context,
                                     bitmap = bmp,

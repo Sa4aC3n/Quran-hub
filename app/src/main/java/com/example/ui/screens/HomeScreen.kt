@@ -83,6 +83,9 @@ import com.example.ui.components.LanguageHeaderButton
 import com.example.ui.theme.Gold400
 import com.example.ui.theme.Gold500
 import com.example.ui.theme.Gold600
+import com.example.ui.theme.IslamicLightPrimary
+import com.example.ui.theme.IslamicLightPrimaryContainer
+import com.example.ui.theme.IslamicTheme
 
 @Composable
 fun HomeScreen(
@@ -122,12 +125,12 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF071B13))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Ambient Subtle Islamic Geometric Pattern Background
         IslamicGeometricBackground(
             modifier = Modifier.matchParentSize(),
-            patternColor = Gold400.copy(alpha = 0.032f),
+            patternColor = IslamicTheme.colors.ornamentColor.copy(alpha = if (IslamicTheme.isDark) 0.032f else 0.045f),
             spacing = 46.dp
         )
 
@@ -239,19 +242,12 @@ fun HomeShareAndRateCard(
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Gold500.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF0C3626),
-                            Color(0xFF08261B)
-                        )
-                    )
-                )
+                .background(IslamicTheme.colors.heroGradient)
                 .padding(16.dp)
         ) {
             Column(
@@ -264,7 +260,7 @@ fun HomeShareAndRateCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     ),
-                    color = Gold400,
+                    color = IslamicTheme.colors.goldAccent,
                     textAlign = TextAlign.Center
                 )
 
@@ -273,7 +269,7 @@ fun HomeShareAndRateCard(
                 Text(
                     text = "قال ﷺ: «مَن دلَّ على خيرٍ فله مثلُ أجرِ فاعله»",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = Color.White.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center
                 )
 
@@ -287,8 +283,8 @@ fun HomeShareAndRateCard(
                     Surface(
                         onClick = onShareApp,
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF134533),
-                        border = BorderStroke(0.8.dp, Gold400.copy(alpha = 0.5f)),
+                        color = if (IslamicTheme.isDark) Color(0xFF134533) else IslamicLightPrimary,
+                        border = BorderStroke(0.8.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
@@ -302,7 +298,7 @@ fun HomeShareAndRateCard(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
-                                tint = Gold400,
+                                tint = IslamicTheme.colors.goldAccent,
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -321,8 +317,8 @@ fun HomeShareAndRateCard(
                     Surface(
                         onClick = onRateApp,
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF1D5A42),
-                        border = BorderStroke(0.8.dp, Gold400),
+                        color = if (IslamicTheme.isDark) Color(0xFF1D5A42) else Color(0xFF166149),
+                        border = BorderStroke(0.8.dp, IslamicTheme.colors.goldAccent),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
@@ -336,7 +332,7 @@ fun HomeShareAndRateCard(
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = Gold400,
+                                tint = IslamicTheme.colors.goldAccent,
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -346,7 +342,7 @@ fun HomeShareAndRateCard(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 ),
-                                color = Gold400
+                                color = Color(0xFFF7E2B5)
                             )
                         }
                     }
@@ -370,17 +366,9 @@ fun HomeHeaderSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF0D3828),
-                            Color(0xFF09291D),
-                            Color(0xFF071E15)
-                        )
-                    )
-                )
+                .background(IslamicTheme.colors.headerGradient)
                 .border(
-                    BorderStroke(width = 0.5.dp, color = Gold500.copy(alpha = 0.35f))
+                    BorderStroke(width = 0.5.dp, color = IslamicTheme.colors.headerBorder)
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
@@ -398,8 +386,8 @@ fun HomeHeaderSection(
                     Surface(
                         onClick = onSettingsClick,
                         shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.08f),
-                        border = BorderStroke(0.7.dp, Gold400.copy(alpha = 0.35f)),
+                        color = Color.White.copy(alpha = if (IslamicTheme.isDark) 0.08f else 0.15f),
+                        border = BorderStroke(0.7.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .size(36.dp)
                             .testTag("home_header_settings_btn")
@@ -418,8 +406,8 @@ fun HomeHeaderSection(
                     Surface(
                         onClick = onSearchClick,
                         shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.08f),
-                        border = BorderStroke(0.7.dp, Gold400.copy(alpha = 0.35f)),
+                        color = Color.White.copy(alpha = if (IslamicTheme.isDark) 0.08f else 0.15f),
+                        border = BorderStroke(0.7.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .size(36.dp)
                             .testTag("home_header_search_btn")
@@ -516,19 +504,12 @@ fun ContinueListeningSection(
             .testTag("card_continue_listening"),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Gold500.copy(alpha = 0.45f))
+        border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF09291D),
-                            Color(0xFF061E15)
-                        )
-                    )
-                )
+                .background(IslamicTheme.colors.cardGradient)
                 .clickable {
                     if (playerState.currentItem?.surahNumber == lastPlayedItem.surahNumber && playerState.currentItem?.reciterId == lastPlayedItem.reciterId) {
                         onTogglePlayPause()
@@ -539,7 +520,7 @@ fun ContinueListeningSection(
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             IslamicCornerOrnaments(
-                color = Gold400.copy(alpha = 0.25f),
+                color = IslamicTheme.colors.goldAccent.copy(alpha = 0.25f),
                 modifier = Modifier.matchParentSize()
             )
 
@@ -586,18 +567,18 @@ fun ContinueListeningSection(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 ),
-                                color = Color(0xFFF7E2B5),
+                                color = if (IslamicTheme.isDark) Color(0xFFF7E2B5) else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Surface(
-                                color = Gold500.copy(alpha = 0.2f),
+                                color = IslamicTheme.colors.badgeContainer,
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
                                     text = "${lastPlayedItem.surahNumber}",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                                    color = Gold400,
+                                    color = IslamicTheme.colors.badgeContent,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                 )
                             }
@@ -608,7 +589,7 @@ fun ContinueListeningSection(
                         Text(
                             text = "بصوت ${lastPlayedItem.reciterName}",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                            color = Color.White.copy(alpha = 0.75f),
+                            color = if (IslamicTheme.isDark) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -619,9 +600,9 @@ fun ContinueListeningSection(
 
                 // Left side in RTL: Mini progress or status badge
                 Surface(
-                    color = Color.White.copy(alpha = 0.1f),
+                    color = if (IslamicTheme.isDark) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(0.5.dp, Gold400.copy(alpha = 0.35f))
+                    border = BorderStroke(0.5.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.35f))
                 ) {
                     Text(
                         text = if (isCurrentItemPlaying) "يُتلى الآن ✦" else "متابعة ▶",
@@ -629,7 +610,7 @@ fun ContinueListeningSection(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.5.sp
                         ),
-                        color = Gold400,
+                        color = IslamicTheme.colors.goldText,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -656,7 +637,7 @@ fun QuickActionsSection(
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             ),
-            color = Gold400,
+            color = IslamicTheme.colors.goldText,
             modifier = Modifier.padding(bottom = 10.dp)
         )
 
@@ -668,24 +649,16 @@ fun QuickActionsSection(
                 .testTag("quick_action_reader_banner"),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            border = BorderStroke(1.dp, Gold500.copy(alpha = 0.45f))
+            border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFF0C3324),
-                                Color(0xFF08261B),
-                                Color(0xFF061E15)
-                            )
-                        )
-                    )
+                    .background(IslamicTheme.colors.cardGradient)
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 IslamicCornerOrnaments(
-                    color = Gold400.copy(alpha = 0.25f),
+                    color = IslamicTheme.colors.goldAccent.copy(alpha = 0.25f),
                     modifier = Modifier.matchParentSize()
                 )
 
@@ -729,13 +702,13 @@ fun QuickActionsSection(
                                 text = "المصحف الشريف والتفسير",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = Color(0xFFF7E2B5)
+                                color = if (IslamicTheme.isDark) Color(0xFFF7E2B5) else MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "قراءة الآيات مع التفسير الميسر ومواضع التلاوة",
                                 fontSize = 11.5.sp,
-                                color = Color.White.copy(alpha = 0.75f),
+                                color = if (IslamicTheme.isDark) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -746,9 +719,9 @@ fun QuickActionsSection(
 
                     // Left in RTL: "اقرأ الآن ✦" pill button with gold accent
                     Surface(
-                        color = Gold500.copy(alpha = 0.15f),
+                        color = IslamicTheme.colors.badgeContainer,
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Gold400.copy(alpha = 0.6f)),
+                        border = BorderStroke(1.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.6f)),
                         modifier = Modifier.clickable { onReaderClick() }
                     ) {
                         Row(
@@ -759,7 +732,7 @@ fun QuickActionsSection(
                                 text = "اقرأ الآن ✦",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Gold400
+                                color = IslamicTheme.colors.goldText
                             )
                         }
                     }
@@ -849,24 +822,17 @@ fun IslamicQuickActionCard(
             .testTag("quick_action_${title}"),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Gold500.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF09291D),
-                            Color(0xFF061E15)
-                        )
-                    )
-                )
+                .background(IslamicTheme.colors.cardGradient)
                 .padding(horizontal = 6.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             IslamicCornerOrnaments(
-                color = Gold400.copy(alpha = 0.18f),
+                color = IslamicTheme.colors.ornamentColor.copy(alpha = 0.18f),
                 modifier = Modifier.matchParentSize()
             )
 
@@ -879,20 +845,29 @@ fun IslamicQuickActionCard(
                         .size(38.dp)
                         .clip(RoundedCornerShape(11.dp))
                         .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFF134533),
-                                    Color(0xFF0B2B1E)
+                            if (IslamicTheme.isDark) {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF134533),
+                                        Color(0xFF0B2B1E)
+                                    )
                                 )
-                            )
+                            } else {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        IslamicLightPrimaryContainer,
+                                        Color(0xFFE2F3EB)
+                                    )
+                                )
+                            }
                         )
-                        .border(1.dp, Gold400.copy(alpha = 0.45f), RoundedCornerShape(11.dp)),
+                        .border(1.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.45f), RoundedCornerShape(11.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Gold400,
+                        tint = if (IslamicTheme.isDark) Gold400 else IslamicLightPrimary,
                         modifier = Modifier.size(21.dp)
                     )
                 }
@@ -905,7 +880,7 @@ fun IslamicQuickActionCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     ),
-                    color = Color(0xFFF7E2B5),
+                    color = if (IslamicTheme.isDark) Color(0xFFF7E2B5) else MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
@@ -918,7 +893,7 @@ fun IslamicQuickActionCard(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Normal
                     ),
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = if (IslamicTheme.isDark) Color.White.copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
@@ -937,24 +912,17 @@ fun QuranicReminderBanner(
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Gold500.copy(alpha = 0.45f))
+        border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF09291D),
-                            Color(0xFF061E15)
-                        )
-                    )
-                )
+                .background(IslamicTheme.colors.cardGradient)
                 .clickable { onDailyClick() }
                 .padding(14.dp)
         ) {
             IslamicCornerOrnaments(
-                color = Gold400.copy(alpha = 0.25f),
+                color = IslamicTheme.colors.goldAccent.copy(alpha = 0.25f),
                 modifier = Modifier.matchParentSize()
             )
 
@@ -966,7 +934,7 @@ fun QuranicReminderBanner(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = Gold400,
+                    tint = IslamicTheme.colors.goldAccent,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -976,14 +944,14 @@ fun QuranicReminderBanner(
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     ),
-                    color = Color(0xFFF7E2B5),
+                    color = if (IslamicTheme.isDark) Color(0xFFF7E2B5) else IslamicTheme.colors.goldText,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = Gold400,
+                    tint = IslamicTheme.colors.goldAccent,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -1012,13 +980,13 @@ fun PopularRecitersSection(
             Text(
                 text = "استمع الآن (كبار القراء)",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Gold400
+                color = IslamicTheme.colors.goldText
             )
 
             Text(
                 text = "عرض الكل ←",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = Gold400,
+                color = IslamicTheme.colors.goldText,
                 modifier = Modifier
                     .clickable { onViewAll() }
                     .padding(4.dp)
@@ -1059,11 +1027,11 @@ fun ReciterCompactCard(
             .testTag("popular_reciter_${reciter.id}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isPlaying) Color(0xFF0E3828) else Color(0xFF09251C)
+            containerColor = if (isPlaying) IslamicTheme.colors.activeContainer else MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
             1.dp,
-            if (isPlaying) Gold400 else Color(0xFF1E4D3B).copy(alpha = 0.5f)
+            if (isPlaying) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Column(
@@ -1085,7 +1053,7 @@ fun ReciterCompactCard(
             Text(
                 text = reciter.name,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1093,7 +1061,7 @@ fun ReciterCompactCard(
             Text(
                 text = reciter.riwayah,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = Color.White.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1103,8 +1071,8 @@ fun ReciterCompactCard(
             Button(
                 onClick = onPlay,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF124734),
-                    contentColor = Gold400
+                    containerColor = if (IslamicTheme.isDark) Color(0xFF124734) else IslamicLightPrimaryContainer,
+                    contentColor = if (IslamicTheme.isDark) Gold400 else IslamicLightPrimary
                 ),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
@@ -1138,13 +1106,13 @@ fun QuickSurahsSection(
             Text(
                 text = "السور المباركة",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Gold400
+                color = IslamicTheme.colors.goldText
             )
 
             Text(
                 text = "كل السور (114) ←",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = Gold400,
+                color = IslamicTheme.colors.goldText,
                 modifier = Modifier
                     .clickable { onViewAll() }
                     .padding(4.dp)
@@ -1166,11 +1134,11 @@ fun QuickSurahsSection(
                         .testTag("home_surah_card_${surah.number}"),
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isPlaying) Color(0xFF0E3828) else Color(0xFF09251C)
+                        containerColor = if (isPlaying) IslamicTheme.colors.activeContainer else MaterialTheme.colorScheme.surface
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (isPlaying) Gold400 else Color(0xFF1E4D3B).copy(alpha = 0.5f)
+                        if (isPlaying) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.outlineVariant
                     )
                 ) {
                     Column(
@@ -1180,13 +1148,13 @@ fun QuickSurahsSection(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            color = if (isPlaying) Gold500 else Color(0xFF0E4A35),
+                            color = if (isPlaying) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
                                 text = "${surah.number}",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                                color = if (isPlaying) Color(0xFF1B1605) else Gold400,
+                                color = if (isPlaying) Color(0xFF1B1605) else IslamicTheme.colors.goldText,
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                             )
                         }
@@ -1196,7 +1164,7 @@ fun QuickSurahsSection(
                         Text(
                             text = "سورة ${surah.name}",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isPlaying) Gold400 else Color.White,
+                            color = if (isPlaying) IslamicTheme.colors.goldText else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1204,7 +1172,7 @@ fun QuickSurahsSection(
                         Text(
                             text = "${surah.ayahs} آية • ${surah.type}",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = Color.White.copy(alpha = 0.65f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

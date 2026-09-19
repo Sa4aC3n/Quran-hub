@@ -54,6 +54,7 @@ import com.example.ui.theme.Gold200
 import com.example.ui.theme.Gold400
 import com.example.ui.theme.Gold500
 import com.example.ui.theme.Gold600
+import com.example.ui.theme.IslamicTheme
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -72,7 +73,7 @@ fun IslamicGeometricBackground(
     spacing: Dp = 52.dp,
     showCornerAccents: Boolean = true
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = IslamicTheme.isDark
     val resolvedColor = patternColor ?: if (isDark) {
         Gold400.copy(alpha = 0.048f)
     } else {
@@ -351,19 +352,19 @@ fun IslamicOrnamentalDivider(
 fun IslamicOrnamentCard(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(18.dp),
-    backgroundGradient: Brush = Brush.verticalGradient(
-        listOf(
-            Color(0xFF09291D),
-            Color(0xFF061E15)
-        )
-    ),
-    borderStroke: Color = Gold500.copy(alpha = 0.35f),
+    backgroundGradient: Brush? = null,
+    borderStroke: Color? = null,
     elevation: Dp = 2.dp,
     showCornerDecorations: Boolean = true,
     showBackgroundPattern: Boolean = true,
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val resolvedGradient = backgroundGradient ?: IslamicTheme.colors.cardGradient
+    val resolvedBorder = borderStroke ?: IslamicTheme.colors.cardBorder
+    val resolvedPatternColor = IslamicTheme.colors.ornamentColor.copy(alpha = if (IslamicTheme.isDark) 0.028f else 0.045f)
+    val resolvedCornerColor = IslamicTheme.colors.goldAccent.copy(alpha = if (IslamicTheme.isDark) 0.28f else 0.38f)
+
     val cardModifier = if (onClick != null) {
         modifier
             .clip(shape)
@@ -381,14 +382,14 @@ fun IslamicOrnamentCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundGradient)
-                .border(1.dp, borderStroke, shape)
+                .background(resolvedGradient)
+                .border(1.dp, resolvedBorder, shape)
         ) {
             // Subtle Islamic Pattern Watermark
             if (showBackgroundPattern) {
                 IslamicGeometricBackground(
                     modifier = Modifier.matchParentSize(),
-                    patternColor = Gold400.copy(alpha = 0.028f),
+                    patternColor = resolvedPatternColor,
                     spacing = 38.dp
                 )
             }
@@ -397,7 +398,7 @@ fun IslamicOrnamentCard(
             if (showCornerDecorations) {
                 IslamicGeometricCornerDecorations(
                     modifier = Modifier.matchParentSize(),
-                    color = Gold400.copy(alpha = 0.28f),
+                    color = resolvedCornerColor,
                     cornerLength = 14.dp,
                     margin = 5.dp
                 )
@@ -428,13 +429,11 @@ fun IslamicButton(
             listOf(Gold200, Gold400, Gold600)
         )
     } else {
-        Brush.horizontalGradient(
-            listOf(Color(0xFF0F4432), Color(0xFF08271C))
-        )
+        IslamicTheme.colors.heroGradient
     }
 
-    val contentColor = if (isPrimaryGold) Color(0xFF141208) else Color(0xFFF7E2B5)
-    val borderColor = if (isPrimaryGold) Gold600.copy(alpha = 0.6f) else Gold400.copy(alpha = 0.45f)
+    val contentColor = if (isPrimaryGold) Color(0xFF141208) else if (IslamicTheme.isDark) Color(0xFFF7E2B5) else Color.White
+    val borderColor = if (isPrimaryGold) Gold600.copy(alpha = 0.6f) else IslamicTheme.colors.goldAccent.copy(alpha = 0.5f)
 
     Surface(
         onClick = onClick,
@@ -445,6 +444,7 @@ fun IslamicButton(
             .border(1.dp, borderColor, RoundedCornerShape(12.dp)),
         color = Color.Transparent
     ) {
+
         Box(
             modifier = Modifier
                 .background(containerBrush)

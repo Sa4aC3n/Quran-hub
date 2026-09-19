@@ -2,6 +2,12 @@
 # PROGUARD / R8 OPTIMIZATION, OBFUSCATION & SHRINKING RULES
 # ==============================================================================
 
+# Enable access modification to permit aggressive class merging, inlining, and dead-code elimination
+-allowaccessmodification
+
+# Repackage all obfuscated classes into the root package to maximize obfuscation percentage
+-repackageclasses ''
+
 # Preserve source file and line numbers for crash reporting and mapping de-obfuscation
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod,MethodParameters
@@ -27,21 +33,21 @@
     public static ** valueOf(java.lang.String);
 }
 
-# Preserve fields annotated with @SerializedName so JSON keys are preserved while classes and unused methods can be obfuscated and shrunk
--keepclassmembers class * {
+# Preserve fields annotated with @SerializedName, while allowing class name obfuscation and method shrinking
+-keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
 # Preserve custom JsonDeserializers and JsonSerializers used in the project
--keep class * implements com.google.gson.JsonDeserializer {
+-keep,allowobfuscation class * implements com.google.gson.JsonDeserializer {
     public <init>();
     <methods>;
 }
--keep class * implements com.google.gson.JsonSerializer {
+-keep,allowobfuscation class * implements com.google.gson.JsonSerializer {
     public <init>();
     <methods>;
 }
--keep class com.example.data.remote.SurahListDeserializer {
+-keep,allowobfuscation class com.example.data.remote.SurahListDeserializer {
     public <init>();
     <methods>;
 }
@@ -53,51 +59,49 @@
 -keep class com.squareup.moshi.** { *; }
 -keep interface com.squareup.moshi.** { *; }
 
-# Preserve all classes annotated with @JsonClass
--keep @com.squareup.moshi.JsonClass class * { *; }
--keepclassmembers @com.squareup.moshi.JsonClass class * {
+# Preserve classes annotated with @JsonClass and their constructors and fields for serialization
+-keep,allowobfuscation @com.squareup.moshi.JsonClass class * {
     <init>(...);
     <fields>;
 }
-
-# Preserve fields and methods annotated with @Json
--keepclassmembers class * {
+-keepclassmembers,allowobfuscation class * {
     @com.squareup.moshi.Json <fields>;
-    @com.squareup.moshi.Json <methods>;
 }
 
-# Preserve all generated Moshi adapters (**JsonAdapter matches in any package)
+# Preserve generated Moshi adapters (**JsonAdapter matches in any package)
 -keep class **JsonAdapter {
-    public <init>(...);
-    *;
-}
--keepclassmembers class **JsonAdapter {
     public <init>(...);
     *;
 }
 -keep class * extends com.squareup.moshi.JsonAdapter { *; }
 
-# Moshi Kotlin Reflection support (KotlinJsonAdapterFactory)
+# Moshi Kotlin Metadata
 -keepclassmembers class kotlin.Metadata {
     public <methods>;
 }
 -dontwarn javax.annotation.**
 
-# Preserve all data model and DTO classes
--keep class com.example.data.provider.Archive** { *; }
--keepclassmembers class com.example.data.provider.Archive** { *; }
--keep class com.example.data.provider.** { *; }
--keepclassmembers class com.example.data.provider.** { *; }
--keep class com.example.data.model.** { *; }
--keepclassmembers class com.example.data.model.** { *; }
--keep class com.example.data.remote.** { *; }
--keepclassmembers class com.example.data.remote.** { *; }
--keep class com.example.prayer.model.** { *; }
--keepclassmembers class com.example.prayer.model.** { *; }
--keep class com.example.haram.** { *; }
--keepclassmembers class com.example.haram.** { *; }
--keep class com.example.watch.** { *; }
--keepclassmembers class com.example.watch.** { *; }
+# Data models and DTOs: allow obfuscation of class names and methods, keep fields for reflection/parsing
+-keepclassmembers,allowobfuscation class com.example.data.model.** {
+    <init>(...);
+    <fields>;
+}
+-keepclassmembers,allowobfuscation class com.example.prayer.model.** {
+    <init>(...);
+    <fields>;
+}
+-keepclassmembers,allowobfuscation class com.example.haram.** {
+    <init>(...);
+    <fields>;
+}
+-keepclassmembers,allowobfuscation class com.example.watch.** {
+    <init>(...);
+    <fields>;
+}
+-keepclassmembers,allowobfuscation class com.example.data.provider.Archive** {
+    <init>(...);
+    <fields>;
+}
 
 # ------------------------------------------------------------------------------
 # 4. Room Database Local Persistence
@@ -108,7 +112,7 @@
 }
 
 # Preserve Room Entity fields so SQLite column mapping remains intact
--keep @androidx.room.Entity class * {
+-keepclassmembers @androidx.room.Entity class * {
     <fields>;
 }
 

@@ -1,55 +1,222 @@
 package com.example.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+
+// ==========================================
+// Material 3 Color Schemes - Unified Emerald & Gold
+// ==========================================
 
 private val DarkColorScheme = darkColorScheme(
-    primary = EmeraldPrimaryDark,
-    onPrimary = Emerald900,
-    primaryContainer = EmeraldPrimaryContainerDark,
-    onPrimaryContainer = EmeraldPrimaryOnDarkContainer,
-    secondary = Gold400,
-    onSecondary = Gold800,
-    secondaryContainer = Gold700,
-    onSecondaryContainer = Gold100,
-    tertiary = Emerald600,
-    background = PolishBgDark,
-    onBackground = PolishTextLight,
-    surface = PolishSurfaceDark,
-    onSurface = PolishTextLight,
-    surfaceVariant = PolishSurfaceVariantDark,
-    onSurfaceVariant = PolishTextMutedDark,
-    outline = PolishBorderDark
+    primary = IslamicDarkPrimary,
+    onPrimary = IslamicDarkOnPrimary,
+    primaryContainer = IslamicDarkPrimaryContainer,
+    onPrimaryContainer = IslamicDarkOnPrimaryContainer,
+    secondary = IslamicDarkSecondary,
+    onSecondary = IslamicDarkOnSecondary,
+    secondaryContainer = IslamicDarkSecondaryContainer,
+    onSecondaryContainer = IslamicDarkOnSecondaryContainer,
+    tertiary = IslamicDarkTertiary,
+    onTertiary = IslamicDarkOnTertiary,
+    background = IslamicDarkBackground,
+    onBackground = IslamicDarkTextPrimary,
+    surface = IslamicDarkSurface,
+    onSurface = IslamicDarkTextPrimary,
+    surfaceVariant = IslamicDarkSurfaceVariant,
+    onSurfaceVariant = IslamicDarkTextSecondary,
+    outline = IslamicDarkOutline,
+    outlineVariant = IslamicDarkOutlineVariant,
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = NavyPrimary,
-    onPrimary = Color.White,
-    primaryContainer = NavyLightSurface,
-    onPrimaryContainer = NavyDark,
-    secondary = GoldPrimary,
-    onSecondary = NavyDark,
-    secondaryContainer = Gold100,
-    onSecondaryContainer = Gold800,
-    tertiary = GoldLight,
-    onTertiary = NavyDark,
-    background = LuxuryBgLight,
-    onBackground = LuxuryTextDark,
-    surface = LuxurySurfaceLight,
-    onSurface = LuxuryTextDark,
-    surfaceVariant = LuxurySurfaceVariantLight,
-    onSurfaceVariant = LuxuryTextSecondary,
-    outline = LuxuryBorderLight,
-    outlineVariant = LuxuryBorderLight.copy(alpha = 0.5f)
+    primary = IslamicLightPrimary,
+    onPrimary = IslamicLightOnPrimary,
+    primaryContainer = IslamicLightPrimaryContainer,
+    onPrimaryContainer = IslamicLightOnPrimaryContainer,
+    secondary = IslamicLightSecondary,
+    onSecondary = IslamicLightOnSecondary,
+    secondaryContainer = IslamicLightSecondaryContainer,
+    onSecondaryContainer = IslamicLightOnSecondaryContainer,
+    tertiary = IslamicLightTertiary,
+    onTertiary = IslamicLightOnTertiary,
+    background = IslamicLightBackground,
+    onBackground = IslamicLightTextPrimary,
+    surface = IslamicLightSurface,
+    onSurface = IslamicLightTextPrimary,
+    surfaceVariant = IslamicLightSurfaceVariant,
+    onSurfaceVariant = IslamicLightTextSecondary,
+    outline = IslamicLightOutline,
+    outlineVariant = IslamicLightOutlineVariant,
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002)
 )
+
+// ==========================================
+// Semantic Islamic Design System Extensions
+// ==========================================
+
+@Immutable
+data class IslamicColors(
+    val isDark: Boolean,
+    val heroGradient: Brush,
+    val headerGradient: Brush,
+    val headerBorder: Color,
+    val cardGradient: Brush,
+    val cardBackground: Color,
+    val cardBorder: Color,
+    val ornamentColor: Color,
+    val goldAccent: Color,
+    val goldText: Color,
+    val activeContainer: Color,
+    val onActiveContainer: Color,
+    val badgeContainer: Color,
+    val badgeContent: Color,
+    val meetingModeContainer: Color,
+    val meetingModeOnContainer: Color,
+    val meetingModeBorder: Color
+)
+
+val LocalIslamicColors = staticCompositionLocalOf {
+    IslamicColors(
+        isDark = true,
+        heroGradient = Brush.verticalGradient(listOf(Color(0xFF0C3827), Color(0xFF071E15))),
+        headerGradient = Brush.verticalGradient(listOf(Color(0xFF0D3828), Color(0xFF071E15))),
+        headerBorder = Gold500.copy(alpha = 0.35f),
+        cardGradient = Brush.verticalGradient(listOf(Color(0xFF0E2F23), Color(0xFF071F16))),
+        cardBackground = IslamicDarkSurface,
+        cardBorder = Gold500.copy(alpha = 0.35f),
+        ornamentColor = Gold400.copy(alpha = 0.22f),
+        goldAccent = Gold400,
+        goldText = GoldTextDark,
+        activeContainer = Color(0xFF0E3828),
+        onActiveContainer = Gold400,
+        badgeContainer = Gold500.copy(alpha = 0.2f),
+        badgeContent = Gold400,
+        meetingModeContainer = MeetingRedDarkContainer,
+        meetingModeOnContainer = MeetingRedDarkText,
+        meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.45f)
+    )
+}
+
+val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
+object IslamicTheme {
+    val colors: IslamicColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalIslamicColors.current
+
+    val isDark: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalIsDarkTheme.current
+}
+
+private fun createIslamicColors(isDark: Boolean): IslamicColors {
+    return if (isDark) {
+        IslamicColors(
+            isDark = true,
+            heroGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0D3828),
+                    Color(0xFF08261B),
+                    Color(0xFF051911)
+                )
+            ),
+            headerGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0D3828),
+                    Color(0xFF09291D),
+                    Color(0xFF071E15)
+                )
+            ),
+            headerBorder = Gold500.copy(alpha = 0.35f),
+            cardGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFF09291D),
+                    Color(0xFF061E15)
+                )
+            ),
+            cardBackground = IslamicDarkSurface,
+            cardBorder = Gold500.copy(alpha = 0.35f),
+            ornamentColor = Gold400.copy(alpha = 0.22f),
+            goldAccent = Gold400,
+            goldText = GoldTextDark,
+            activeContainer = Color(0xFF0E3828),
+            onActiveContainer = Gold400,
+            badgeContainer = Gold500.copy(alpha = 0.2f),
+            badgeContent = Gold400,
+            meetingModeContainer = MeetingRedDarkContainer,
+            meetingModeOnContainer = MeetingRedDarkText,
+            meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.5f)
+        )
+    } else {
+        IslamicColors(
+            isDark = false,
+            heroGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0E563E),
+                    Color(0xFF0A4430)
+                )
+            ),
+            headerGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFF0E563E),
+                    Color(0xFF0A4430),
+                    Color(0xFF083827)
+                )
+            ),
+            headerBorder = Gold400.copy(alpha = 0.45f),
+            cardGradient = Brush.verticalGradient(
+                listOf(
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF7FAF7)
+                )
+            ),
+            cardBackground = IslamicLightSurface,
+            cardBorder = IslamicLightOutline,
+            ornamentColor = IslamicLightSecondary.copy(alpha = 0.18f),
+            goldAccent = IslamicLightSecondary,
+            goldText = GoldTextLight,
+            activeContainer = Color(0xFFD6EFE3),
+            onActiveContainer = IslamicLightPrimary,
+            badgeContainer = IslamicLightSecondaryContainer,
+            badgeContent = IslamicLightOnSecondaryContainer,
+            meetingModeContainer = MeetingRedLightContainer,
+            meetingModeOnContainer = MeetingRedLightText,
+            meetingModeBorder = MeetingRedLightBorder
+        )
+    }
+}
+
+// ==========================================
+// App Theme Entry Point
+// ==========================================
 
 @Composable
 fun MyApplicationTheme(
@@ -66,9 +233,30 @@ fun MyApplicationTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    val islamicColors = createIslamicColors(darkTheme)
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                // When in light theme, use dark icons for status bar and navigation bar
+                insetsController.isAppearanceLightStatusBars = !darkTheme
+                insetsController.isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalIsDarkTheme provides darkTheme,
+        LocalIslamicColors provides islamicColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
+

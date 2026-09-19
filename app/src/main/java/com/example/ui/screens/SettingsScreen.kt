@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.ui.components.IslamicGeometricBackground
+import com.example.ui.theme.IslamicTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Brightness4
@@ -419,11 +420,11 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isMeetingModeActive) Color(0xFF2C1314) else MaterialTheme.colorScheme.surface
+                    containerColor = if (isMeetingModeActive) IslamicTheme.colors.meetingModeContainer else MaterialTheme.colorScheme.surface
                 ),
                 border = BorderStroke(
                     1.dp,
-                    if (isMeetingModeActive) Color(0xFFEF5350).copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                    if (isMeetingModeActive) IslamicTheme.colors.meetingModeBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -436,21 +437,21 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             SettingsIconBadge(
                                 icon = if (isMeetingModeActive) Icons.Default.NotificationsOff else Icons.Default.DoNotDisturbOn,
-                                tint = if (isMeetingModeActive) Color(0xFFEF5350) else Gold500
+                                tint = if (isMeetingModeActive) IslamicTheme.colors.meetingModeBorder else Gold500
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = "وضع الاجتماعات (كتم فوري واهتزاز)",
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isMeetingModeActive) Color(0xFFFFCDD2) else MaterialTheme.colorScheme.onSurface
+                                    color = if (isMeetingModeActive) IslamicTheme.colors.meetingModeOnContainer else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = if (isMeetingModeActive) {
                                         meetingTitle ?: "نشط الآن • كتم الصوت وإيقاف التلاوة"
                                     } else "كتم التلاوة وتحويل التنبيهات لاهتزاز خفيف بالساعة",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (isMeetingModeActive) Color(0xFFE57373) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isMeetingModeActive) IslamicTheme.colors.meetingModeOnContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
