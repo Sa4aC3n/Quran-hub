@@ -22,14 +22,25 @@ sealed class PersistenceResult {
 class QuranTextUnavailableException(val surahNumber: Int, message: String) : Exception(message)
 
 /**
- * Authentic, verified Quran text provider with atomic disk persistence.
+ * Storage envelope for authentic Quran surahs ensuring schema evolution safety.
+ */
+data class SurahStorageEnvelope(
+    val schemaVersion: Int = 2,
+    val surahNumber: Int,
+    val sourceProvider: String = "Tanzil Authentic Quran Text",
+    val dataVersion: String = "1.0",
+    val timestamp: Long = System.currentTimeMillis(),
+    val surahText: SurahText
+)
+
+/**
+ * Authentic, verified Quran text provider with atomic disk persistence compatible with API 24/25+.
  * Validates all texts against the canonical QuranManifest (114 surahs, strict verse counts and sequencing).
  * Never generates synthetic or placeholder verses upon network or parsing failure.
  */
 class QuranTextProvider(private val context: Context) {
 
     private val cache = ConcurrentHashMap<Int, SurahText>()
-    private val fileLocks = ConcurrentHashMap<Int, Any>()
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
@@ -51,31 +62,63 @@ class QuranTextProvider(private val context: Context) {
     }
 
     /**
+     * Reads and authenticates a surah text file using Android AtomicFile.
+     * Backwards-compatible with both enveloped (v2) and direct (v1) formats.
+     */
+    fun readSurahFromFile(file: File, expectedSurahNumber: Int): SurahText? {
+        if (!file.exists() || file.length() == 0L) return null
+        val lock = StorageLockManager.getLockFor(file)
+        return synchronized(lock) {
+            try {
+                val atomicFile = android.util.AtomicFile(file)
+                val json = atomicFile.openRead().use { stream ->
+                    stream.bufferedReader(Charsets.UTF_8).readText()
+                }
+                val jsonObject = gson.fromJson(json, JsonObject::class.java)
+                val surah = if (jsonObject != null && jsonObject.has("schemaVersion") && jsonObject.has("surahText")) {
+                    gson.fromJson(jsonObject.get("surahText"), SurahText::class.java)
+                } else {
+                    gson.fromJson(json, SurahText::class.java)
+                }
+                if (surah != null && QuranManifest.validateSurah(surah, expectedSurahNumber) is QuranManifest.ValidationResult.Valid) {
+                    surah
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
      * Checks whether the authentic surah text is already stored locally on disk
      * and strictly matches expectedSurahNumber.
      */
     fun isSurahDownloaded(surahNumber: Int, expectedSurahNumber: Int = surahNumber): Boolean {
         if (surahNumber != expectedSurahNumber || surahNumber !in 1..QuranManifest.TOTAL_SURAHS) return false
         val file = File(storageDir, "surah_$surahNumber.json")
-        if (!file.exists() || file.length() == 0L) return false
-        return try {
-            val text = file.readText()
-            val surah = gson.fromJson(text, SurahText::class.java) ?: return false
-            QuranManifest.validateSurah(surah, expectedSurahNumber) is QuranManifest.ValidationResult.Valid
-        } catch (_: Exception) {
-            false
+        return readSurahFromFile(file, expectedSurahNumber) != null
+    }
+
+    /**
+     * Returns the set of verified downloaded surah numbers (1..114).
+     */
+    fun getVerifiedDownloadedSurahNumbers(): Set<Int> {
+        val result = mutableSetOf<Int>()
+        for (i in 1..QuranManifest.TOTAL_SURAHS) {
+            if (isSurahDownloaded(i, i)) {
+                result.add(i)
+            }
         }
+        return result
     }
 
     /**
      * Returns the total count of fully downloaded and verified surahs.
      */
     fun getDownloadedSurahsCount(): Int {
-        var count = 0
-        for (i in 1..QuranManifest.TOTAL_SURAHS) {
-            if (isSurahDownloaded(i, i)) count++
-        }
-        return count
+        return getVerifiedDownloadedSurahNumbers().size
     }
 
     /**
@@ -142,23 +185,10 @@ class QuranTextProvider(private val context: Context) {
 
         // 2. Check atomic local disk storage
         val localFile = File(storageDir, "surah_$surahNumber.json")
-        if (localFile.exists() && localFile.length() > 0L) {
-            try {
-                val json = localFile.readText()
-                val localSurah = gson.fromJson(json, SurahText::class.java)
-                if (localSurah != null) {
-                    val validation = QuranManifest.validateSurah(localSurah, surahNumber)
-                    if (validation is QuranManifest.ValidationResult.Valid) {
-                        cache[surahNumber] = localSurah
-                        return@withContext localSurah
-                    } else {
-                        // File corrupted or tampered; purge it
-                        localFile.delete()
-                    }
-                }
-            } catch (_: Exception) {
-                localFile.delete()
-            }
+        val localSurah = readSurahFromFile(localFile, surahNumber)
+        if (localSurah != null) {
+            cache[surahNumber] = localSurah
+            return@withContext localSurah
         }
 
         // 3. Check bundled authentic curated baseline for offline opening
@@ -274,9 +304,32 @@ class QuranTextProvider(private val context: Context) {
     }
 
     /**
-     * Atomically writes the validated surah to persistent disk storage.
-     * Uses a unique temporary file, descriptor sync, and atomic replace (NEVER deleting the target beforehand)
-     * with strict read-back verification.
+     * Clears in-memory verified cache.
+     */
+    fun clearCache() {
+        cache.clear()
+    }
+
+    /**
+     * Deletes the persistent file for a surah (for testing and cleanup).
+     */
+    fun deleteSurahFile(surahNumber: Int): Boolean {
+        val targetFile = File(storageDir, "surah_$surahNumber.json")
+        val lock = StorageLockManager.getLockFor(targetFile)
+        return synchronized(lock) {
+            cache.remove(surahNumber)
+            try {
+                android.util.AtomicFile(targetFile).delete()
+                true
+            } catch (_: Exception) {
+                targetFile.delete()
+            }
+        }
+    }
+
+    /**
+     * Atomically writes the validated surah to persistent disk storage using Android AtomicFile (API 24/25+ compatible).
+     * Enforces strict read-back verification and never leaves corrupted or partial files.
      */
     fun saveSurahToDiskAtomic(surah: SurahText, expectedSurahNumber: Int = surah.number): PersistenceResult {
         val validation = QuranManifest.validateSurah(surah, expectedSurahNumber)
@@ -285,50 +338,44 @@ class QuranTextProvider(private val context: Context) {
             return PersistenceResult.Failure(surah.number, reason)
         }
         val targetFile = File(storageDir, "surah_${surah.number}.json")
-        val tempFile = File(storageDir, "surah_${surah.number}_${java.util.UUID.randomUUID().toString().take(8)}.tmp")
+        val lock = StorageLockManager.getLockFor(targetFile)
 
-        val lock = fileLocks.computeIfAbsent(surah.number) { Any() }
         synchronized(lock) {
-            return try {
-                val json = gson.toJson(surah)
-                FileOutputStream(tempFile).use { fos ->
-                    fos.write(json.toByteArray(Charsets.UTF_8))
-                    fos.flush()
-                    fos.fd.sync()
-                }
+            val atomicFile = android.util.AtomicFile(targetFile)
+            var fos: FileOutputStream? = null
+            try {
+                val envelope = SurahStorageEnvelope(
+                    schemaVersion = 2,
+                    surahNumber = surah.number,
+                    sourceProvider = "Tanzil Authentic Quran Text",
+                    dataVersion = "1.0",
+                    surahText = surah
+                )
+                val json = gson.toJson(envelope)
+                val bytes = json.toByteArray(Charsets.UTF_8)
 
-                if (!tempFile.exists() || tempFile.length() == 0L) {
-                    tempFile.delete()
-                    return PersistenceResult.Failure(surah.number, "فشل إنشاء الملف المؤقت")
-                }
-
-                // Atomic replace: NEVER delete targetFile before move, so previous valid version is retained if move fails
+                fos = atomicFile.startWrite()
+                fos.write(bytes)
+                fos.flush()
                 try {
-                    java.nio.file.Files.move(
-                        tempFile.toPath(),
-                        targetFile.toPath(),
-                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                    )
-                } catch (_: Exception) {
-                    java.nio.file.Files.move(
-                        tempFile.toPath(),
-                        targetFile.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                    )
-                }
-
-                // Read-back verification from targetFile to ensure full integrity
-                val readBack = gson.fromJson(targetFile.readText(), SurahText::class.java)
-                if (readBack != null && QuranManifest.validateSurah(readBack, expectedSurahNumber) is QuranManifest.ValidationResult.Valid) {
-                    cache[surah.number] = readBack
-                    PersistenceResult.Success(surah.number, targetFile)
-                } else {
-                    PersistenceResult.Failure(surah.number, "فشل التحقق من صحة الملف بعد الحفظ الدائم")
-                }
+                    fos.fd.sync()
+                } catch (_: Exception) {}
+                atomicFile.finishWrite(fos)
+                fos = null
             } catch (e: Exception) {
-                if (tempFile.exists()) tempFile.delete()
-                PersistenceResult.Failure(surah.number, e.message ?: "خطأ أثناء حفظ السورة على القرص")
+                if (fos != null) {
+                    atomicFile.failWrite(fos)
+                }
+                return PersistenceResult.Failure(surah.number, "خطأ أثناء حفظ السورة على القرص: ${e.message}")
+            }
+
+            // Read-back verification from targetFile to ensure full integrity
+            val readBack = readSurahFromFile(targetFile, expectedSurahNumber)
+            return if (readBack != null) {
+                cache[surah.number] = readBack
+                PersistenceResult.Success(surah.number, targetFile)
+            } else {
+                PersistenceResult.Failure(surah.number, "فشل التحقق من صحة الملف بعد الحفظ الدائم والقراءة")
             }
         }
     }

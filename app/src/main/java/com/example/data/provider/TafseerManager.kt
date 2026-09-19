@@ -10,7 +10,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -30,10 +32,29 @@ data class TafseerUiState(
 
 class TafseerUnavailableException(val tafseerId: Int, message: String) : Exception(message)
 
+sealed class TafseerPersistenceResult {
+    data class Success(val tafseerId: Int, val surahNumber: Int, val ayahNumber: Int, val file: File) : TafseerPersistenceResult()
+    data class Failure(val tafseerId: Int, val surahNumber: Int, val ayahNumber: Int, val reason: String) : TafseerPersistenceResult()
+}
+
+data class TafseerDownloadProgress(
+    val tafseerId: Int,
+    val tafseerName: String = "",
+    val surahNumber: Int,
+    val surahName: String = "",
+    val totalAyahs: Int,
+    val attemptedAyahs: Int,
+    val persistedAyahs: Int,
+    val failedAyahs: Int,
+    val isCompleted: Boolean,
+    val isDownloading: Boolean = true,
+    val errorMessage: String? = null
+)
+
 /**
  * Authentic Tafseer Manager adhering strictly to classical commentaries.
  * Never fabricates or synthesizes generic commentary.
- * Uses versioned cache (tafseer_cache_v2) with atomic disk writes.
+ * Uses versioned cache (tafseer_cache_v2) with atomic disk writes (API 24/25+ compatible).
  */
 class TafseerManager(context: Context) {
 
@@ -46,6 +67,9 @@ class TafseerManager(context: Context) {
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
+
+    @Volatile
+    private var activeDownloadJob: kotlinx.coroutines.Job? = null
 
     init {
         // Invalidate legacy unverified v1 cache if present
@@ -89,7 +113,57 @@ class TafseerManager(context: Context) {
         defaultTafseers
     }
 
-    private val tafseerFileLocks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+    /**
+     * Reads and authenticates a cached tafseer file using Android AtomicFile.
+     */
+    fun readTafseerFromFile(file: File, expectedTafseerId: Int, expectedSurah: Int, expectedAyah: Int): AyahTafseerResponse? {
+        if (!file.exists() || file.length() == 0L) return null
+        val lock = StorageLockManager.getLockFor(file)
+        return synchronized(lock) {
+            try {
+                val atomicFile = android.util.AtomicFile(file)
+                val json = atomicFile.openRead().use { stream ->
+                    stream.bufferedReader(Charsets.UTF_8).readText()
+                }
+                val response = gson.fromJson(json, AyahTafseerResponse::class.java)
+                if (response != null &&
+                    !response.text.isNullOrBlank() &&
+                    response.tafseerId == expectedTafseerId &&
+                    response.surahNumber == expectedSurah &&
+                    response.ayahNumber == expectedAyah
+                ) {
+                    response
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
+     * Checks whether an individual ayah commentary is verified and persisted on disk.
+     */
+    fun isTafseerAyahPersisted(tafseerId: Int, surahNumber: Int, ayahNumber: Int): Boolean {
+        val cacheKey = "tafseer_${tafseerId}_${surahNumber}_${ayahNumber}.json"
+        val cacheFile = File(cacheDir, cacheKey)
+        return readTafseerFromFile(cacheFile, tafseerId, surahNumber, ayahNumber) != null
+    }
+
+    /**
+     * Counts verified persisted ayahs for a given surah and tafseer book.
+     */
+    fun getPersistedTafseerAyahsCount(tafseerId: Int, surahNumber: Int): Int {
+        val totalAyahs = QuranManifest.getCanonicalAyahCount(surahNumber)
+        var count = 0
+        for (ayah in 1..totalAyahs) {
+            if (isTafseerAyahPersisted(tafseerId, surahNumber, ayah)) {
+                count++
+            }
+        }
+        return count
+    }
 
     /**
      * Fetches authentic commentary for the specified book and ayah.
@@ -105,23 +179,9 @@ class TafseerManager(context: Context) {
         val cacheFile = File(cacheDir, cacheKey)
 
         // 1. Check verified persistent v2 local cache with complete identity check
-        if (cacheFile.exists() && cacheFile.length() > 0L) {
-            try {
-                val cachedJson = cacheFile.readText()
-                val response = gson.fromJson(cachedJson, AyahTafseerResponse::class.java)
-                if (response != null &&
-                    !response.text.isNullOrBlank() &&
-                    response.tafseerId == tafseerId &&
-                    response.surahNumber == surahNumber &&
-                    response.ayahNumber == ayahNumber
-                ) {
-                    return@withContext Result.success(response)
-                } else {
-                    cacheFile.delete()
-                }
-            } catch (e: Exception) {
-                cacheFile.delete()
-            }
+        val cachedResponse = readTafseerFromFile(cacheFile, tafseerId, surahNumber, ayahNumber)
+        if (cachedResponse != null) {
+            return@withContext Result.success(cachedResponse)
         }
 
         // 2. Check embedded authentic verified repository for this specific book
@@ -266,66 +326,169 @@ class TafseerManager(context: Context) {
     }
 
     /**
+     * Guarantees that a tafseer entry is persisted on disk and verified by read-back.
+     */
+    suspend fun ensureTafseerPersisted(
+        tafseerId: Int,
+        surahNumber: Int,
+        ayahNumber: Int
+    ): TafseerPersistenceResult = withContext(Dispatchers.IO) {
+        val cacheKey = "tafseer_${tafseerId}_${surahNumber}_${ayahNumber}.json"
+        val cacheFile = File(cacheDir, cacheKey)
+
+        if (isTafseerAyahPersisted(tafseerId, surahNumber, ayahNumber)) {
+            return@withContext TafseerPersistenceResult.Success(tafseerId, surahNumber, ayahNumber, cacheFile)
+        }
+
+        val result = getAyahTafseer(tafseerId, surahNumber, ayahNumber)
+        if (result.isSuccess) {
+            val resp = result.getOrNull()
+            if (resp != null) {
+                val saveResult = saveTafseerToDiskAtomic(resp, cacheFile)
+                if (saveResult is TafseerPersistenceResult.Success) {
+                    return@withContext saveResult
+                }
+            }
+        }
+
+        TafseerPersistenceResult.Failure(
+            tafseerId,
+            surahNumber,
+            ayahNumber,
+            "تعذر جلب التفسير وتأكيد حفظه على القرص"
+        )
+    }
+
+    /**
+     * Cancels any active Tafseer downloading job.
+     */
+    fun cancelTafseerDownload() {
+        activeDownloadJob?.cancel()
+        activeDownloadJob = null
+    }
+
+    /**
      * Downloads and authenticates tafseer for a specific surah.
-     * Reports real progress based on verified saved items.
+     * Reports real progress based strictly on verified disk-persisted items.
      */
     suspend fun downloadTafseerForSurah(
         tafseerId: Int,
         surahNumber: Int,
-        onProgress: (currentAyah: Int, totalAyahs: Int) -> Unit = { _, _ -> }
+        onProgress: (TafseerDownloadProgress) -> Unit = {}
     ): Result<Int> = withContext(Dispatchers.IO) {
-        val totalAyahs = QuranManifest.getCanonicalAyahCount(surahNumber)
-        var savedCount = 0
-        for (ayah in 1..totalAyahs) {
-            val result = getAyahTafseer(tafseerId, surahNumber, ayah)
-            if (result.isSuccess) {
-                savedCount++
-            }
-            onProgress(ayah, totalAyahs)
+        if (surahNumber !in 1..QuranManifest.TOTAL_SURAHS) {
+            return@withContext Result.failure(IllegalArgumentException("رقم السورة غير صالح: $surahNumber"))
         }
-        if (savedCount == totalAyahs) {
-            Result.success(savedCount)
+
+        val totalAyahs = QuranManifest.getCanonicalAyahCount(surahNumber)
+        val surahName = QuranManifest.getSurahNameArabic(surahNumber)
+        val bookName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+        var persistedCount = 0
+        var failedCount = 0
+        var attemptedCount = 0
+
+        for (ayah in 1..totalAyahs) {
+            ensureActive()
+
+            attemptedCount++
+            if (isTafseerAyahPersisted(tafseerId, surahNumber, ayah)) {
+                persistedCount++
+            } else {
+                val persistResult = ensureTafseerPersisted(tafseerId, surahNumber, ayah)
+                if (persistResult is TafseerPersistenceResult.Success) {
+                    persistedCount++
+                } else {
+                    failedCount++
+                }
+            }
+
+            onProgress(
+                TafseerDownloadProgress(
+                    tafseerId = tafseerId,
+                    tafseerName = bookName,
+                    surahNumber = surahNumber,
+                    surahName = surahName,
+                    totalAyahs = totalAyahs,
+                    attemptedAyahs = attemptedCount,
+                    persistedAyahs = persistedCount,
+                    failedAyahs = failedCount,
+                    isCompleted = (persistedCount == totalAyahs),
+                    isDownloading = (persistedCount + failedCount < totalAyahs)
+                )
+            )
+        }
+
+        if (persistedCount == totalAyahs) {
+            Result.success(persistedCount)
         } else {
             Result.failure(
-                Exception("تم حفظ $savedCount من أصل $totalAyahs آية لتفسير سورة ${QuranManifest.getSurahNameArabic(surahNumber)}")
+                Exception("تم حفظ $persistedCount من أصل $totalAyahs آية لتفسير ($bookName) لسورة $surahName. تعذر حفظ $failedCount آية.")
             )
         }
     }
 
-    fun saveTafseerToDiskAtomic(response: AyahTafseerResponse, targetFile: File): Boolean {
-        if (response.text.isBlank()) return false
-        val lock = tafseerFileLocks.computeIfAbsent(targetFile.name) { Any() }
-        val tempFile = File(cacheDir, "${targetFile.name}_${java.util.UUID.randomUUID().toString().take(6)}.tmp")
+    /**
+     * Downloads and authenticates tafseer for a range of surahs.
+     */
+    suspend fun downloadTafseerRange(
+        tafseerId: Int,
+        fromSurah: Int,
+        toSurah: Int,
+        onProgress: (TafseerDownloadProgress) -> Unit = {}
+    ): Result<Int> = withContext(Dispatchers.IO) {
+        val start = fromSurah.coerceIn(1, QuranManifest.TOTAL_SURAHS)
+        val end = toSurah.coerceIn(start, QuranManifest.TOTAL_SURAHS)
+        var totalPersisted = 0
+        val bookName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+
+        for (surahNum in start..end) {
+            ensureActive()
+
+            val surahRes = downloadTafseerForSurah(tafseerId, surahNum, onProgress)
+            if (surahRes.isSuccess) {
+                totalPersisted += surahRes.getOrDefault(0)
+            }
+        }
+
+        Result.success(totalPersisted)
+    }
+
+    /**
+     * Atomically writes the tafseer response to persistent disk storage using Android AtomicFile (API 24/25+ compatible).
+     * Enforces strict read-back verification.
+     */
+    fun saveTafseerToDiskAtomic(response: AyahTafseerResponse, targetFile: File): TafseerPersistenceResult {
+        if (response.text.isBlank()) {
+            return TafseerPersistenceResult.Failure(response.tafseerId, response.surahNumber, response.ayahNumber, "نص التفسير فارغ")
+        }
+        val lock = StorageLockManager.getLockFor(targetFile)
         synchronized(lock) {
-            return try {
+            val atomicFile = android.util.AtomicFile(targetFile)
+            var fos: FileOutputStream? = null
+            try {
                 val json = gson.toJson(response)
-                FileOutputStream(tempFile).use { fos ->
-                    fos.write(json.toByteArray(Charsets.UTF_8))
-                    fos.flush()
-                    fos.fd.sync()
-                }
-                if (!tempFile.exists() || tempFile.length() == 0L) {
-                    tempFile.delete()
-                    return false
-                }
+                val bytes = json.toByteArray(Charsets.UTF_8)
+                fos = atomicFile.startWrite()
+                fos.write(bytes)
+                fos.flush()
                 try {
-                    java.nio.file.Files.move(
-                        tempFile.toPath(),
-                        targetFile.toPath(),
-                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                    )
-                } catch (_: Exception) {
-                    java.nio.file.Files.move(
-                        tempFile.toPath(),
-                        targetFile.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                    )
-                }
-                true
+                    fos.fd.sync()
+                } catch (_: Exception) {}
+                atomicFile.finishWrite(fos)
+                fos = null
             } catch (e: Exception) {
-                if (tempFile.exists()) tempFile.delete()
-                false
+                if (fos != null) {
+                    atomicFile.failWrite(fos)
+                }
+                return TafseerPersistenceResult.Failure(response.tafseerId, response.surahNumber, response.ayahNumber, "خطأ أثناء حفظ التفسير: ${e.message}")
+            }
+
+            // Read-back verification
+            val readBack = readTafseerFromFile(targetFile, response.tafseerId, response.surahNumber, response.ayahNumber)
+            return if (readBack != null) {
+                TafseerPersistenceResult.Success(response.tafseerId, response.surahNumber, response.ayahNumber, targetFile)
+            } else {
+                TafseerPersistenceResult.Failure(response.tafseerId, response.surahNumber, response.ayahNumber, "فشل التحقق من قراءة التفسير من القرص بعد الحفظ")
             }
         }
     }

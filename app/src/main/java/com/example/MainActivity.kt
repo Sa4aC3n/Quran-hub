@@ -238,6 +238,7 @@ fun QuranAppRoot(
     val availableTafseers by viewModel.availableTafseers.collectAsState()
     val selectedTafseerId by viewModel.selectedTafseerId.collectAsState()
     val tafseerUiState by viewModel.tafseerUiState.collectAsState()
+    val tafseerDownloadProgress by viewModel.tafseerDownloadProgress.collectAsState()
     val activeAyahNumber by viewModel.activeAyahNumber.collectAsState()
     val activeWordIndex by viewModel.activeWordIndex.collectAsState()
 
@@ -566,6 +567,9 @@ fun QuranAppRoot(
                                         onLoadTafseer = { ayah, surahNum, tafseerId ->
                                             viewModel.loadTafseerForAyah(ayah, surahNum, tafseerId)
                                         },
+                                        onDownloadSurahTafseer = { tafseerId, surahNum ->
+                                            viewModel.downloadTafseerForSurah(tafseerId, surahNum)
+                                        },
                                         onAddBookmark = { sNum, sName, aNum, page, juz, text, note ->
                                             viewModel.addBookmark(sNum, sName, aNum, page, juz, text, note)
                                         },
@@ -875,6 +879,10 @@ fun QuranAppRoot(
                                         },
                                         onBack = {
                                             currentScreen = Screen.Home
+                                        },
+                                        tafseerDownloadProgress = tafseerDownloadProgress,
+                                        onCancelTafseerDownload = {
+                                            viewModel.cancelTafseerDownload()
                                         }
                                     )
                                 }

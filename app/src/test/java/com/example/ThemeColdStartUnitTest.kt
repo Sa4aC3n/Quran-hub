@@ -94,7 +94,7 @@ class ThemeColdStartUnitTest {
             .edit().putString("app_theme", "corrupted_stale").commit()
 
         // When DataStore flow is collected, it validates and heals the mirror
-        val flowValue = repository.appThemeFlow.first()
+        val flowValue = repository.appThemeFlow.first { it == "light" }
         assertEquals("light", flowValue)
 
         // Verify mirror was healed

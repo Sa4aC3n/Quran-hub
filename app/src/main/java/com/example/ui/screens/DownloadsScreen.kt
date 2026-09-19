@@ -92,6 +92,7 @@ import com.example.data.model.PlayerState
 import com.example.data.model.Reciter
 import com.example.data.model.ReciterStorageInfo
 import com.example.data.model.Surah
+import com.example.data.provider.TafseerDownloadProgress
 import com.example.ui.components.IslamicGeometricBackground
 import com.example.ui.components.IslamicGradientCard
 import com.example.ui.components.SurahNumberBadge
@@ -123,6 +124,8 @@ fun DownloadsScreen(
     onPlayReciterOffline: (reciterId: String) -> Unit,
     onSelectReciter: (Reciter) -> Unit,
     onBack: () -> Unit,
+    tafseerDownloadProgress: TafseerDownloadProgress? = null,
+    onCancelTafseerDownload: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -438,6 +441,69 @@ fun DownloadsScreen(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("تحميل الكل", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+                }
+            }
+
+            // Active Tafseer Download Card (if downloading)
+            AnimatedVisibility(
+                visible = tafseerDownloadProgress != null && tafseerDownloadProgress.isDownloading,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "جاري تحميل تفسير: ${tafseerDownloadProgress?.tafseerName}",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "سورة ${tafseerDownloadProgress?.surahName} (${tafseerDownloadProgress?.persistedAyahs} من ${tafseerDownloadProgress?.totalAyahs} آية)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                            IconButton(
+                                onClick = onCancelTafseerDownload,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Cancel,
+                                    contentDescription = "إلغاء تنزيل التفسير",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+
+                        val totalAyahs = tafseerDownloadProgress?.totalAyahs ?: 1
+                        val persisted = tafseerDownloadProgress?.persistedAyahs ?: 0
+                        val progressFraction = (persisted.toFloat() / totalAyahs.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { progressFraction },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.secondary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            strokeCap = StrokeCap.Round
+                        )
                     }
                 }
             }

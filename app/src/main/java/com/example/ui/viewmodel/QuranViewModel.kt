@@ -40,6 +40,7 @@ import com.example.data.provider.AyahTiming
 import com.example.data.provider.PersistenceResult
 import com.example.data.provider.QuranTimingManager
 import com.example.data.provider.SurahTiming
+import com.example.data.provider.TafseerDownloadProgress
 import com.example.data.provider.TafseerManager
 import com.example.data.provider.TafseerUiState
 import com.example.data.remote.TafseerItem
@@ -251,6 +252,10 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _tafseerUiState = MutableStateFlow(TafseerUiState(tafseerId = tafseerManager.getSelectedTafseerId()))
     val tafseerUiState: StateFlow<TafseerUiState> = _tafseerUiState.asStateFlow()
+
+    private val _tafseerDownloadProgress = MutableStateFlow<TafseerDownloadProgress?>(null)
+    val tafseerDownloadProgress: StateFlow<TafseerDownloadProgress?> = _tafseerDownloadProgress.asStateFlow()
+    private var tafseerDownloadJob: Job? = null
 
     // Read-Along Audio & Word Timing
     private val _currentSurahTiming = MutableStateFlow<SurahTiming?>(null)
@@ -1213,6 +1218,47 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+    }
+
+    fun downloadTafseerForSurah(tafseerId: Int, surahNumber: Int) {
+        tafseerDownloadJob?.cancel()
+        tafseerDownloadJob = viewModelScope.launch {
+            val bookName = com.example.data.provider.EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+            val surahName = com.example.data.provider.QuranManifest.getSurahNameArabic(surahNumber)
+            _snackbarMessage.emit("بدء حفظ تفسير ($bookName) لسورة $surahName للاستخدام دون اتصال...")
+            val result = tafseerManager.downloadTafseerForSurah(
+                tafseerId = tafseerId,
+                surahNumber = surahNumber,
+                onProgress = { progress ->
+                    _tafseerDownloadProgress.value = progress
+                }
+            )
+            result.onSuccess { count ->
+                _snackbarMessage.emit("تم حفظ تفسير ($bookName) لسورة $surahName كاملاً ($count آية) دون اتصال")
+            }.onFailure { err ->
+                if (err !is kotlinx.coroutines.CancellationException) {
+                    _snackbarMessage.emit(err.message ?: "فشل استكمال حفظ التفسير")
+                }
+            }
+        }
+    }
+
+    fun cancelTafseerDownload() {
+        tafseerDownloadJob?.cancel()
+        tafseerDownloadJob = null
+        tafseerManager.cancelTafseerDownload()
+        _tafseerDownloadProgress.value = null
+        viewModelScope.launch {
+            _snackbarMessage.emit("تم إلغاء تنزيل التفسير")
+        }
+    }
+
+    fun isTafseerPersisted(tafseerId: Int, surahNumber: Int, ayahNumber: Int): Boolean {
+        return tafseerManager.isTafseerAyahPersisted(tafseerId, surahNumber, ayahNumber)
+    }
+
+    fun getPersistedTafseerAyahsCount(tafseerId: Int, surahNumber: Int): Int {
+        return tafseerManager.getPersistedTafseerAyahsCount(tafseerId, surahNumber)
     }
 
     fun loadTimingForSurah(surahNumber: Int, reciter: Reciter? = null, durationMs: Long = 0) {

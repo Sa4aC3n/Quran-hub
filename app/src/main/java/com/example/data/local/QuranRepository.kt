@@ -681,7 +681,7 @@ class QuranRepository(
                         val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
                         val current = sp.getString("app_theme", null)
                         if (current != validatedTheme) {
-                            sp.edit().putString("app_theme", validatedTheme).apply()
+                            sp.edit().putString("app_theme", validatedTheme).commit()
                         }
                     } catch (_: Exception) {}
                     emit(validatedTheme)

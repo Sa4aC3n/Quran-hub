@@ -106,6 +106,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.LibraryBooks
 import androidx.compose.foundation.BorderStroke
@@ -150,6 +151,7 @@ fun QuranReaderScreen(
     onThemeChange: (ReaderTheme) -> Unit,
     onSelectTafseer: (Int) -> Unit = {},
     onLoadTafseer: (Ayah, Int, Int?) -> Unit = { _, _, _ -> },
+    onDownloadSurahTafseer: ((tafseerId: Int, surahNumber: Int) -> Unit)? = null,
     onAddBookmark: (surahNumber: Int, surahName: String, ayahNumber: Int, page: Int, juz: Int, text: String, note: String) -> Unit,
     onDeleteBookmark: (String) -> Unit,
     onPlaySurahAudio: (Surah, Reciter?) -> Unit,
@@ -929,6 +931,27 @@ fun QuranReaderScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("مشاركة", fontSize = 12.sp)
                         }
+                    }
+                }
+
+                if (onDownloadSurahTafseer != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = {
+                            onDownloadSurahTafseer(selectedTafseerId, surahText?.number ?: currentSurahNumber)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
+                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "تحميل تفسير سورة ${currentSurahMeta?.name ?: ""} بالكامل دون اتصال",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
 
