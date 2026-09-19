@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PlayerState
 import com.example.ui.theme.Gold500
+import com.example.ui.theme.IslamicTheme
 
 @Composable
 fun MiniAudioPlayer(
@@ -156,7 +157,7 @@ fun MiniAudioPlayer(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
-                                            .background(Gold500.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                            .background(IslamicTheme.colors.badgeContainer, RoundedCornerShape(6.dp))
                                             .padding(horizontal = 5.dp, vertical = 2.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -164,14 +165,14 @@ fun MiniAudioPlayer(
                                             Icon(
                                                 imageVector = Icons.Default.SwapCalls,
                                                 contentDescription = "مصدر بديل",
-                                                tint = Gold500,
+                                                tint = IslamicTheme.colors.badgeContent,
                                                 modifier = Modifier.size(11.dp)
                                             )
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 text = "مصدر ${playerState.currentSourceIndex + 1}/${playerState.totalSourcesCount}",
                                                 fontSize = 10.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = IslamicTheme.colors.badgeContent,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         }
@@ -221,7 +222,7 @@ fun MiniAudioPlayer(
                             if (playerState.isBuffering) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     strokeWidth = 2.5.dp
                                 )
                             } else {

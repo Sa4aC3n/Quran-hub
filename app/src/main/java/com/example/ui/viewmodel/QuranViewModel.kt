@@ -178,7 +178,7 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, "grid_3")
 
     val appTheme: StateFlow<String> = repository.appThemeFlow
-        .stateIn(viewModelScope, SharingStarted.Lazily, "system")
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getCachedAppTheme())
 
     val dailyReminderEnabled: StateFlow<Boolean> = repository.dailyReminderEnabledFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, false)

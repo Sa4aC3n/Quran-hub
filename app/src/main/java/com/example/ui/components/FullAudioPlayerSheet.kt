@@ -112,6 +112,7 @@ import com.example.ui.components.share.AyahShareModalSheet
 import com.example.ui.theme.Gold400
 import com.example.ui.theme.Gold500
 import com.example.ui.theme.Gold600
+import com.example.ui.theme.IslamicTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -232,7 +233,7 @@ fun FullAudioPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.SwapCalls,
                         contentDescription = "تغيير المصدر البديل",
-                        tint = if (playerState.isFallbackActive) Gold500 else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (playerState.isFallbackActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -272,7 +273,7 @@ fun FullAudioPlayerSheet(
                             Icon(
                                 imageVector = Icons.Default.Shuffle,
                                 contentDescription = "خلط القائمة",
-                                tint = if (playerState.isShuffleEnabled) Gold500 else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (playerState.isShuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -548,7 +549,7 @@ fun FullAudioPlayerSheet(
                     .fillMaxWidth()
                     .testTag("player_seek_slider"),
                 colors = SliderDefaults.colors(
-                    thumbColor = Gold500,
+                    thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
                     inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
@@ -611,15 +612,8 @@ fun FullAudioPlayerSheet(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-                                )
-                            )
-                        )
-                        .border(2.dp, Gold400, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .border(1.5.dp, IslamicTheme.colors.cardBorder, CircleShape)
                         .clickable(onClick = onTogglePlayPause)
                         .testTag("btn_main_play_pause"),
                     contentAlignment = Alignment.Center
@@ -627,14 +621,14 @@ fun FullAudioPlayerSheet(
                     if (playerState.isBuffering) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(34.dp),
-                            color = Gold400,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 3.dp
                         )
                     } else {
                         Icon(
                             imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (playerState.isPlaying) "إيقاف مؤقت" else "تشغيل",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(40.dp)
                         )
                     }
@@ -686,7 +680,7 @@ fun FullAudioPlayerSheet(
                     Icon(
                         imageVector = Icons.Default.Bedtime,
                         contentDescription = "مؤقت النوم",
-                        tint = if (playerState.isSleepTimerActive) Gold500 else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (playerState.isSleepTimerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -698,7 +692,7 @@ fun FullAudioPlayerSheet(
                     Icon(
                         imageVector = if (playerState.repeatMode == PlayerRepeatMode.REPEAT_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
                         contentDescription = "خيارات التكرار والحفظ",
-                        tint = if (playerState.repeatMode != PlayerRepeatMode.OFF || playerState.repeatSettings.targetCount > 0 || playerState.repeatSettings.abLoop.isActive) Gold500 else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (playerState.repeatMode != PlayerRepeatMode.OFF || playerState.repeatSettings.targetCount > 0 || playerState.repeatSettings.abLoop.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 

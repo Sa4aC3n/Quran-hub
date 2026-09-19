@@ -703,8 +703,23 @@ class QuranRepository(
     }
 
     suspend fun setAppTheme(theme: String) {
+        try {
+            context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putString("app_theme", theme)
+                .apply()
+        } catch (_: Exception) {}
         context.dataStore.edit { prefs ->
             prefs[KEY_APP_THEME] = theme
+        }
+    }
+
+    fun getCachedAppTheme(): String {
+        return try {
+            context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+                .getString("app_theme", "system") ?: "system"
+        } catch (_: Exception) {
+            "system"
         }
     }
 
