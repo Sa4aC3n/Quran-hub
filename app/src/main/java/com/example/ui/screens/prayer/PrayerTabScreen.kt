@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.prayer.calculator.HijriCalendarHelper
 import com.example.prayer.manager.PrayerManager
-import com.example.ui.theme.Gold500
+import com.example.ui.theme.IslamicTheme
 
 /**
  * Main "الصلاة" Tab Screen.
@@ -187,57 +187,64 @@ private fun PrayerTabMainCardsView(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = Color.Transparent
             ),
+            border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(IslamicTheme.colors.heroGradient)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "الصلاة القادمة",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.2f)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = dayPrayerTimes.nextPrayer?.timeFormatted ?: "",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Gold500,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            text = "الصلاة القادمة",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = IslamicTheme.colors.onHero.copy(alpha = 0.85f)
                         )
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.Black.copy(alpha = 0.25f)
+                        ) {
+                            Text(
+                                text = dayPrayerTimes.nextPrayer?.timeFormatted ?: "",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = IslamicTheme.colors.heroAccent,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    val nextName = dayPrayerTimes.nextPrayer?.type?.arabicName ?: "الفجر"
+                    Text(
+                        text = "صلاة $nextName",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        color = IslamicTheme.colors.onHero
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    val countdown = HijriCalendarHelper.formatDurationArabic(dayPrayerTimes.timeUntilNextMillis)
+                    Text(
+                        text = "متبقي على الأذان: $countdown",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = IslamicTheme.colors.heroAccent
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                val nextName = dayPrayerTimes.nextPrayer?.type?.arabicName ?: "الفجر"
-                Text(
-                    text = "صلاة $nextName",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                val countdown = HijriCalendarHelper.formatDurationArabic(dayPrayerTimes.timeUntilNextMillis)
-                Text(
-                    text = "متبقي على الأذان: $countdown",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Gold500
-                )
             }
         }
 
@@ -356,7 +363,7 @@ private fun PrayerTabMainCardsView(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = Gold500.copy(alpha = 0.15f),
+                            color = IslamicTheme.colors.badgeContainer,
                             modifier = Modifier.size(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -370,7 +377,7 @@ private fun PrayerTabMainCardsView(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "فتح بوصلة القبلة",
-                            tint = Gold500,
+                            tint = IslamicTheme.colors.goldAccent,
                             modifier = Modifier
                                 .size(18.dp)
                                 .rotate(180f)
@@ -399,13 +406,13 @@ private fun PrayerTabMainCardsView(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Gold500.copy(alpha = 0.12f)
+                        color = IslamicTheme.colors.badgeContainer
                     ) {
                         Text(
                             text = "${HijriCalendarHelper.toArabicDigits(qiblaData.qiblaAngle.toInt())}° من الشمال",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Gold500,
+                            color = IslamicTheme.colors.goldText,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -449,11 +456,11 @@ private fun PrayerTabMainCardsView(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (prayer.isNext) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
+                        containerColor = if (prayer.isNext) IslamicTheme.colors.activeContainer else MaterialTheme.colorScheme.surface
                     ),
                     border = BorderStroke(
                         width = if (prayer.isNext) 1.5.dp else 1.dp,
-                        color = if (prayer.isNext) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+                        color = if (prayer.isNext) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = if (prayer.isNext) 2.dp else 0.5.dp)
                 ) {
@@ -485,14 +492,14 @@ private fun PrayerTabMainCardsView(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = IslamicTheme.colors.selectedBadgeContainer
                                 ) {
                                     Text(
                                         text = "القادمة",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        color = Color.White
+                                        color = IslamicTheme.colors.selectedBadgeContent
                                     )
                                 }
                             }

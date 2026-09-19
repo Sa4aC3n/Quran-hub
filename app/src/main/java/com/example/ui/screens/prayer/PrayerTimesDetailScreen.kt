@@ -109,7 +109,7 @@ import com.example.prayer.model.PrayerTimeItem
 import com.example.prayer.model.PrayerTimeOffsets
 import com.example.prayer.model.PrayerType
 import com.example.prayer.notification.AdhanVoicesCatalog
-import com.example.ui.theme.Gold500
+import com.example.ui.theme.IslamicTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -287,82 +287,89 @@ fun PrayerTimesDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = Color.Transparent
                     ),
+                    border = BorderStroke(1.dp, IslamicTheme.colors.cardBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .background(IslamicTheme.colors.heroGradient)
                     ) {
-                        Text(
-                            text = "الصلاة القادمة",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val nextName = dayPrayerTimes.nextPrayer?.type?.arabicName ?: "الفجر"
-                        Text(
-                            text = "صلاة $nextName",
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Large Arabic Countdown
-                        val countdownFormatted = HijriCalendarHelper.formatDurationArabic(dayPrayerTimes.timeUntilNextMillis)
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.Black.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "متبقي: $countdownFormatted",
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Gold500
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Progress Indicator
-                        val animatedProgress by animateFloatAsState(
-                            targetValue = dayPrayerTimes.progressPercent,
-                            animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-                            label = "prayer_progress"
-                        )
-
-                        LinearProgressIndicator(
-                            progress = { animatedProgress },
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(CircleShape),
-                            color = Gold500,
-                            trackColor = Color.White.copy(alpha = 0.25f)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "الآن: ${dayPrayerTimes.currentPrayer?.type?.arabicName ?: "—"}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                text = "الصلاة القادمة",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = IslamicTheme.colors.onHero.copy(alpha = 0.85f)
                             )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            val nextName = dayPrayerTimes.nextPrayer?.type?.arabicName ?: "الفجر"
                             Text(
-                                text = "الموعد: ${dayPrayerTimes.nextPrayer?.timeFormatted ?: ""}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                text = "صلاة $nextName",
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                color = IslamicTheme.colors.onHero
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Large Arabic Countdown
+                            val countdownFormatted = HijriCalendarHelper.formatDurationArabic(dayPrayerTimes.timeUntilNextMillis)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.Black.copy(alpha = 0.25f)
+                            ) {
+                                Text(
+                                    text = "متبقي: $countdownFormatted",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = IslamicTheme.colors.heroAccent
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Progress Indicator
+                            val animatedProgress by animateFloatAsState(
+                                targetValue = dayPrayerTimes.progressPercent,
+                                animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+                                label = "prayer_progress"
+                            )
+
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(CircleShape),
+                                color = IslamicTheme.colors.heroAccent,
+                                trackColor = IslamicTheme.colors.onHero.copy(alpha = 0.25f)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "الآن: ${dayPrayerTimes.currentPrayer?.type?.arabicName ?: "—"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = IslamicTheme.colors.onHero.copy(alpha = 0.85f)
+                                )
+                                Text(
+                                    text = "الموعد: ${dayPrayerTimes.nextPrayer?.timeFormatted ?: ""}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = IslamicTheme.colors.onHero.copy(alpha = 0.85f)
+                                )
+                            }
                         }
                     }
                 }
@@ -544,7 +551,7 @@ fun PrayerTimesDetailScreen(
                                 Icon(
                                     imageVector = if (isPlayingThis) Icons.Default.Stop else Icons.Default.PlayArrow,
                                     contentDescription = "معاينة الصوت",
-                                    tint = if (isPlayingThis) Color.Red else MaterialTheme.colorScheme.primary
+                                    tint = if (isPlayingThis) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -663,15 +670,15 @@ fun PrayerRowItem(
 ) {
     val isCurrentOrNext = item.isNext || item.isCurrent
     val backgroundColor = when {
-        item.isNext -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-        item.isCurrent -> Gold500.copy(alpha = 0.12f)
+        item.isNext -> IslamicTheme.colors.activeContainer
+        item.isCurrent -> IslamicTheme.colors.badgeContainer
         item.isPassed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.surface
     }
 
     val borderColor = when {
         item.isNext -> MaterialTheme.colorScheme.primary
-        item.isCurrent -> Gold500
+        item.isCurrent -> IslamicTheme.colors.goldAccent
         else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
     }
 
@@ -704,12 +711,12 @@ fun PrayerRowItem(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.primary
+                                color = IslamicTheme.colors.selectedBadgeContainer
                             ) {
                                 Text(
                                     text = "القادمة",
                                     fontSize = 10.sp,
-                                    color = Color.White,
+                                    color = IslamicTheme.colors.selectedBadgeContent,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     fontWeight = FontWeight.Bold
                                 )
@@ -718,12 +725,12 @@ fun PrayerRowItem(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = Gold500
+                                color = IslamicTheme.colors.badgeContainer
                             ) {
                                 Text(
                                     text = "الحالية",
                                     fontSize = 10.sp,
-                                    color = Color.Black,
+                                    color = IslamicTheme.colors.goldText,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     fontWeight = FontWeight.Bold
                                 )

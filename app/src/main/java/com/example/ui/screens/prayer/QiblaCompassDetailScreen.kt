@@ -89,7 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.prayer.calculator.HijriCalendarHelper
 import com.example.prayer.manager.PrayerManager
-import com.example.ui.theme.Gold500
+import com.example.ui.theme.IslamicTheme
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -133,7 +133,7 @@ fun QiblaCompassDetailScreen(
     )
 
     val alignedBorderColor by animateColorAsState(
-        targetValue = if (qiblaData.isAligned) Gold500 else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+        targetValue = if (qiblaData.isAligned) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
         animationSpec = tween(300),
         label = "aligned_border"
     )
@@ -272,7 +272,7 @@ fun QiblaCompassDetailScreen(
                     Icon(
                         imageVector = if (qiblaData.isAligned) Icons.Default.CheckCircle else Icons.Default.NearMe,
                         contentDescription = null,
-                        tint = if (qiblaData.isAligned) MaterialTheme.colorScheme.primary else Gold500,
+                        tint = if (qiblaData.isAligned) MaterialTheme.colorScheme.primary else IslamicTheme.colors.goldAccent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -309,6 +309,8 @@ fun QiblaCompassDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 // Background compass dial that rotates with device heading
+                val goldColor = IslamicTheme.colors.goldAccent
+                val needleDefault = if (IslamicTheme.isDark) Color(0xFF90A4AE) else Color(0xFF1E3A5F)
                 Canvas(
                     modifier = Modifier
                         .size(280.dp)
@@ -317,15 +319,17 @@ fun QiblaCompassDetailScreen(
                     drawCompassDial(
                         qiblaAngle = qiblaData.qiblaAngle,
                         isAligned = qiblaData.isAligned,
-                        pulseScale = if (qiblaData.isAligned) pulseGlow else 1f
+                        pulseScale = if (qiblaData.isAligned) pulseGlow else 1f,
+                        goldColor = goldColor,
+                        needleDefaultColor = needleDefault
                     )
                 }
 
                 // Center Kaaba Emblem & Status
                 Surface(
                     shape = CircleShape,
-                    color = if (qiblaData.isAligned) Gold500.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(2.dp, if (qiblaData.isAligned) Gold500 else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                    color = if (qiblaData.isAligned) IslamicTheme.colors.badgeContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(2.dp, if (qiblaData.isAligned) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                     modifier = Modifier.size(72.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -381,7 +385,7 @@ fun QiblaCompassDetailScreen(
                     Icon(
                         imageVector = Icons.Default.CompassCalibration,
                         contentDescription = null,
-                        tint = Gold500,
+                        tint = IslamicTheme.colors.goldAccent,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -445,7 +449,9 @@ fun CompassInfoCard(
 private fun DrawScope.drawCompassDial(
     qiblaAngle: Float,
     isAligned: Boolean,
-    pulseScale: Float
+    pulseScale: Float,
+    goldColor: Color,
+    needleDefaultColor: Color
 ) {
     val center = Offset(size.width / 2f, size.height / 2f)
     val radius = size.width / 2f
@@ -470,7 +476,7 @@ private fun DrawScope.drawCompassDial(
 
         val tickColor = when {
             i == 0 -> Color(0xFFEF5350) // North in Red
-            isCardinal -> Color(0xFFC9A227)
+            isCardinal -> goldColor
             isMajor -> Color.Gray
             else -> Color.Gray.copy(alpha = 0.4f)
         }
@@ -491,7 +497,7 @@ private fun DrawScope.drawCompassDial(
 
     // Draw Qibla Pointer Pointer Line & Needle towards Kaaba angle
     rotate(qiblaAngle, pivot = center) {
-        val needleColor = if (isAligned) Gold500 else Color(0xFF0B1F3A)
+        val needleColor = if (isAligned) goldColor else needleDefaultColor
 
         // Golden / Navy needle pointing towards Kaaba
         val path = Path().apply {

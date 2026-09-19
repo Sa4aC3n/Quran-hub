@@ -260,7 +260,7 @@ fun HomeShareAndRateCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     ),
-                    color = IslamicTheme.colors.goldAccent,
+                    color = IslamicTheme.colors.heroAccent,
                     textAlign = TextAlign.Center
                 )
 
@@ -269,7 +269,7 @@ fun HomeShareAndRateCard(
                 Text(
                     text = "قال ﷺ: «مَن دلَّ على خيرٍ فله مثلُ أجرِ فاعله»",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = IslamicTheme.colors.onHero.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center
                 )
 
@@ -283,8 +283,8 @@ fun HomeShareAndRateCard(
                     Surface(
                         onClick = onShareApp,
                         shape = RoundedCornerShape(12.dp),
-                        color = if (IslamicTheme.isDark) Color(0xFF134533) else IslamicLightPrimary,
-                        border = BorderStroke(0.8.dp, IslamicTheme.colors.goldAccent.copy(alpha = 0.5f)),
+                        color = if (IslamicTheme.isDark) Color(0xFF134533) else Color(0xFF093E2C),
+                        border = BorderStroke(1.dp, IslamicTheme.colors.heroAccent.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
@@ -298,7 +298,7 @@ fun HomeShareAndRateCard(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
-                                tint = IslamicTheme.colors.goldAccent,
+                                tint = IslamicTheme.colors.heroAccent,
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -308,7 +308,7 @@ fun HomeShareAndRateCard(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 ),
-                                color = Color.White
+                                color = IslamicTheme.colors.onHero
                             )
                         }
                     }
@@ -317,8 +317,8 @@ fun HomeShareAndRateCard(
                     Surface(
                         onClick = onRateApp,
                         shape = RoundedCornerShape(12.dp),
-                        color = if (IslamicTheme.isDark) Color(0xFF1D5A42) else Color(0xFF166149),
-                        border = BorderStroke(0.8.dp, IslamicTheme.colors.goldAccent),
+                        color = if (IslamicTheme.isDark) Color(0xFF1D5A42) else Color(0xFF0F4E38),
+                        border = BorderStroke(1.dp, IslamicTheme.colors.heroAccent.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
@@ -332,7 +332,7 @@ fun HomeShareAndRateCard(
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
-                                tint = IslamicTheme.colors.goldAccent,
+                                tint = IslamicTheme.colors.heroAccent,
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -342,7 +342,7 @@ fun HomeShareAndRateCard(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 ),
-                                color = Color(0xFFF7E2B5)
+                                color = IslamicTheme.colors.heroAccent
                             )
                         }
                     }
@@ -1148,15 +1148,30 @@ fun QuickSurahsSection(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            color = if (isPlaying) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (isPlaying) IslamicTheme.colors.selectedBadgeContainer else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(6.dp)
                         ) {
-                            Text(
-                                text = "${surah.number}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                                color = if (isPlaying) Color(0xFF1B1605) else IslamicTheme.colors.goldText,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                if (isPlaying) {
+                                    Icon(
+                                        imageVector = Icons.Default.GraphicEq,
+                                        contentDescription = "جاري التشغيل",
+                                        tint = IslamicTheme.colors.selectedBadgeContent,
+                                        modifier = Modifier
+                                            .size(11.dp)
+                                            .padding(end = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "${surah.number}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                    color = if (isPlaying) IslamicTheme.colors.selectedBadgeContent else IslamicTheme.colors.goldText
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -1164,7 +1179,7 @@ fun QuickSurahsSection(
                         Text(
                             text = "سورة ${surah.name}",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isPlaying) IslamicTheme.colors.goldText else MaterialTheme.colorScheme.onSurface,
+                            color = if (isPlaying) (if (IslamicTheme.isDark) IslamicTheme.colors.goldAccent else IslamicLightPrimary) else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

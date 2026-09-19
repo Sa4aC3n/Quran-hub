@@ -78,6 +78,7 @@ import com.example.data.model.Surah
 import com.example.ui.components.IslamicGeometricBackground
 import com.example.ui.components.IslamicGeometricCornerDecorations
 import com.example.ui.components.SurahNumberBadge
+import com.example.ui.theme.IslamicTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -780,14 +781,14 @@ fun SurahListItemCard(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isPlaying) MaterialTheme.colorScheme.primary
+                        if (isPlaying) IslamicTheme.colors.selectedBadgeContainer
                         else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                     )
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
                     contentDescription = "تشغيل",
-                    tint = if (isPlaying) Color.White else MaterialTheme.colorScheme.primary,
+                    tint = if (isPlaying) IslamicTheme.colors.selectedBadgeContent else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -833,13 +834,13 @@ fun SurahGridItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    color = if (isPlaying) IslamicTheme.colors.selectedBadgeContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         text = "${surah.number}",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                        color = if (isPlaying) Color.White else MaterialTheme.colorScheme.primary,
+                        color = if (isPlaying) IslamicTheme.colors.selectedBadgeContent else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                     )
                 }

@@ -83,6 +83,7 @@ import com.example.ui.components.SurahNumberBadge
 import com.example.ui.theme.Gold400
 import com.example.ui.theme.Gold500
 import com.example.ui.theme.Gold600
+import com.example.ui.theme.IslamicTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -297,14 +298,14 @@ fun ReciterDetailScreen(
                                     Icon(
                                         imageVector = Icons.Default.PlayArrow,
                                         contentDescription = "تشغيل من البداية",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "بدء",
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             }
@@ -629,15 +630,15 @@ fun SurahItemCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isCurrentSurah) MaterialTheme.colorScheme.primary
+                            if (isCurrentSurah) IslamicTheme.colors.selectedBadgeContainer
                             else MaterialTheme.colorScheme.surfaceVariant
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        imageVector = if (isCurrentSurah && isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
                         contentDescription = "تشغيل سورة ${surah.name}",
-                        tint = if (isCurrentSurah) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isCurrentSurah) IslamicTheme.colors.selectedBadgeContent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }

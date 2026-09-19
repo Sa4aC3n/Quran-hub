@@ -70,6 +70,7 @@ import com.example.data.model.Playlist
 import com.example.data.model.PlaylistItem
 import com.example.ui.theme.Gold400
 import com.example.ui.theme.Gold500
+import com.example.ui.theme.IslamicTheme
 import com.example.ui.components.IslamicGeometricBackground
 import kotlinx.coroutines.flow.Flow
 
@@ -508,7 +509,7 @@ private fun PlaylistDetailView(
                         shape = RoundedCornerShape(12.dp),
                         color = if (isPlayingThis) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = if (isPlayingThis) androidx.compose.foundation.BorderStroke(1.dp, Gold500) else null,
+                        border = if (isPlayingThis) androidx.compose.foundation.BorderStroke(1.dp, IslamicTheme.colors.goldAccent) else null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onPlayItem(index) }

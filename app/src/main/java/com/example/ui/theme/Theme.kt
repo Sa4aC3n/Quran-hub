@@ -31,6 +31,7 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = IslamicDarkOnPrimary,
     primaryContainer = IslamicDarkPrimaryContainer,
     onPrimaryContainer = IslamicDarkOnPrimaryContainer,
+    inversePrimary = IslamicLightPrimary,
     secondary = IslamicDarkSecondary,
     onSecondary = IslamicDarkOnSecondary,
     secondaryContainer = IslamicDarkSecondaryContainer,
@@ -43,12 +44,23 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = IslamicDarkTextPrimary,
     surfaceVariant = IslamicDarkSurfaceVariant,
     onSurfaceVariant = IslamicDarkTextSecondary,
+    surfaceTint = IslamicDarkPrimary,
+    inverseSurface = IslamicLightSurface,
+    inverseOnSurface = IslamicLightTextPrimary,
+    surfaceDim = Color(0xFF061710),
+    surfaceBright = Color(0xFF163E2F),
+    surfaceContainerLowest = Color(0xFF04120D),
+    surfaceContainerLow = Color(0xFF0A2219),
+    surfaceContainer = Color(0xFF0D281E),
+    surfaceContainerHigh = Color(0xFF143629),
+    surfaceContainerHighest = Color(0xFF1B4434),
     outline = IslamicDarkOutline,
     outlineVariant = IslamicDarkOutlineVariant,
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6)
+    onErrorContainer = Color(0xFFFFDAD6),
+    scrim = Color(0xFF000000)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -56,6 +68,7 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = IslamicLightOnPrimary,
     primaryContainer = IslamicLightPrimaryContainer,
     onPrimaryContainer = IslamicLightOnPrimaryContainer,
+    inversePrimary = IslamicDarkPrimary,
     secondary = IslamicLightSecondary,
     onSecondary = IslamicLightOnSecondary,
     secondaryContainer = IslamicLightSecondaryContainer,
@@ -68,12 +81,23 @@ private val LightColorScheme = lightColorScheme(
     onSurface = IslamicLightTextPrimary,
     surfaceVariant = IslamicLightSurfaceVariant,
     onSurfaceVariant = IslamicLightTextSecondary,
+    surfaceTint = IslamicLightPrimary,
+    inverseSurface = IslamicDarkSurface,
+    inverseOnSurface = IslamicDarkTextPrimary,
+    surfaceDim = Color(0xFFD6E2DB),
+    surfaceBright = Color(0xFFF8FAF7),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF2F6F3),
+    surfaceContainer = Color(0xFFEDF3EE),
+    surfaceContainerHigh = Color(0xFFE6EEE8),
+    surfaceContainerHighest = Color(0xFFDFE8E2),
     outline = IslamicLightOutline,
     outlineVariant = IslamicLightOutlineVariant,
     error = Color(0xFFBA1A1A),
     onError = Color(0xFFFFFFFF),
     errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002)
+    onErrorContainer = Color(0xFF410002),
+    scrim = Color(0xFF000000)
 )
 
 // ==========================================
@@ -84,6 +108,8 @@ private val LightColorScheme = lightColorScheme(
 data class IslamicColors(
     val isDark: Boolean,
     val heroGradient: Brush,
+    val onHero: Color,
+    val heroAccent: Color,
     val headerGradient: Brush,
     val headerBorder: Color,
     val cardGradient: Brush,
@@ -96,15 +122,20 @@ data class IslamicColors(
     val onActiveContainer: Color,
     val badgeContainer: Color,
     val badgeContent: Color,
+    val selectedBadgeContainer: Color,
+    val selectedBadgeContent: Color,
     val meetingModeContainer: Color,
     val meetingModeOnContainer: Color,
-    val meetingModeBorder: Color
+    val meetingModeBorder: Color,
+    val meetingModeIcon: Color
 )
 
 val LocalIslamicColors = staticCompositionLocalOf {
     IslamicColors(
         isDark = true,
         heroGradient = Brush.verticalGradient(listOf(Color(0xFF0C3827), Color(0xFF071E15))),
+        onHero = Color(0xFFFFFFFF),
+        heroAccent = Gold400,
         headerGradient = Brush.verticalGradient(listOf(Color(0xFF0D3828), Color(0xFF071E15))),
         headerBorder = Gold500.copy(alpha = 0.35f),
         cardGradient = Brush.verticalGradient(listOf(Color(0xFF0E2F23), Color(0xFF071F16))),
@@ -117,9 +148,12 @@ val LocalIslamicColors = staticCompositionLocalOf {
         onActiveContainer = Gold400,
         badgeContainer = Gold500.copy(alpha = 0.2f),
         badgeContent = Gold400,
+        selectedBadgeContainer = IslamicDarkPrimary,
+        selectedBadgeContent = IslamicDarkOnPrimary,
         meetingModeContainer = MeetingRedDarkContainer,
         meetingModeOnContainer = MeetingRedDarkText,
-        meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.45f)
+        meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.45f),
+        meetingModeIcon = MeetingRedDarkIcon
     )
 }
 
@@ -148,6 +182,8 @@ private fun createIslamicColors(isDark: Boolean): IslamicColors {
                     Color(0xFF051911)
                 )
             ),
+            onHero = Color(0xFFFFFFFF),
+            heroAccent = Gold400,
             headerGradient = Brush.verticalGradient(
                 listOf(
                     Color(0xFF0D3828),
@@ -171,9 +207,12 @@ private fun createIslamicColors(isDark: Boolean): IslamicColors {
             onActiveContainer = Gold400,
             badgeContainer = Gold500.copy(alpha = 0.2f),
             badgeContent = Gold400,
+            selectedBadgeContainer = IslamicDarkPrimary,
+            selectedBadgeContent = IslamicDarkOnPrimary,
             meetingModeContainer = MeetingRedDarkContainer,
             meetingModeOnContainer = MeetingRedDarkText,
-            meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.5f)
+            meetingModeBorder = MeetingRedDarkBorder.copy(alpha = 0.5f),
+            meetingModeIcon = MeetingRedDarkIcon
         )
     } else {
         IslamicColors(
@@ -184,6 +223,8 @@ private fun createIslamicColors(isDark: Boolean): IslamicColors {
                     Color(0xFF0A4430)
                 )
             ),
+            onHero = Color(0xFFFFFFFF),
+            heroAccent = Color(0xFFFCE9BE),
             headerGradient = Brush.verticalGradient(
                 listOf(
                     Color(0xFF0E563E),
@@ -207,9 +248,12 @@ private fun createIslamicColors(isDark: Boolean): IslamicColors {
             onActiveContainer = IslamicLightPrimary,
             badgeContainer = IslamicLightSecondaryContainer,
             badgeContent = IslamicLightOnSecondaryContainer,
+            selectedBadgeContainer = IslamicLightPrimary,
+            selectedBadgeContent = Color(0xFFFFFFFF),
             meetingModeContainer = MeetingRedLightContainer,
             meetingModeOnContainer = MeetingRedLightText,
-            meetingModeBorder = MeetingRedLightBorder
+            meetingModeBorder = MeetingRedLightBorder,
+            meetingModeIcon = MeetingRedLightIcon
         )
     }
 }

@@ -78,9 +78,11 @@ val IslamicDarkTextTertiary = Color(0xFF7A8E83)
 val MeetingRedDarkContainer = Color(0xFF2C1314)
 val MeetingRedDarkBorder = Color(0xFFEF5350)
 val MeetingRedDarkText = Color(0xFFFFCDD2)
+val MeetingRedDarkIcon = Color(0xFFFF8A80)
 val MeetingRedLightContainer = Color(0xFFFFEBEE)
 val MeetingRedLightBorder = Color(0xFFEF9A9A)
 val MeetingRedLightText = Color(0xFFC62828)
+val MeetingRedLightIcon = Color(0xFFB71C1C)
 
 // ==========================================
 // Compatibility Aliases for Legacy Code

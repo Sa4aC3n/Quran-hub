@@ -131,7 +131,7 @@ fun SettingsScreen(
                         Text(
                             text = "﷽",
                             style = MaterialTheme.typography.titleLarge,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     Spacer(modifier = Modifier.width(14.dp))
@@ -437,7 +437,8 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             SettingsIconBadge(
                                 icon = if (isMeetingModeActive) Icons.Default.NotificationsOff else Icons.Default.DoNotDisturbOn,
-                                tint = if (isMeetingModeActive) IslamicTheme.colors.meetingModeBorder else Gold500
+                                tint = if (isMeetingModeActive) IslamicTheme.colors.meetingModeIcon else IslamicTheme.colors.goldAccent,
+                                containerColor = if (isMeetingModeActive) IslamicTheme.colors.meetingModeBorder.copy(alpha = 0.25f) else IslamicTheme.colors.goldAccent.copy(alpha = 0.12f)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
@@ -610,7 +611,7 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             SettingsIconBadge(
                                 icon = if (isHaramNotificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
-                                tint = if (isHaramNotificationsEnabled) Gold500 else Color.Gray
+                                tint = if (isHaramNotificationsEnabled) IslamicTheme.colors.goldAccent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
@@ -760,7 +761,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            SettingsIconBadge(icon = Icons.Default.Star, tint = Gold500)
+                            SettingsIconBadge(icon = Icons.Default.Star, tint = IslamicTheme.colors.goldAccent)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
@@ -839,13 +840,14 @@ fun SettingsSectionHeader(title: String) {
 @Composable
 fun SettingsIconBadge(
     icon: ImageVector,
-    tint: Color = MaterialTheme.colorScheme.primary
+    tint: Color = MaterialTheme.colorScheme.primary,
+    containerColor: Color = tint.copy(alpha = 0.12f)
 ) {
     Box(
         modifier = Modifier
             .size(38.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(tint.copy(alpha = 0.12f)),
+            .background(containerColor),
         contentAlignment = Alignment.Center
     ) {
         Icon(
