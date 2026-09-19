@@ -520,17 +520,31 @@ class AudioDownloadManager(context: Context) {
     ) {
         if (_offlineTextDownloadState.value.isDownloading) return
 
+        val validSurahs = if (surahs.isNotEmpty()) {
+            surahs.distinctBy { it.number }.sortedBy { it.number }
+        } else {
+            (1..com.example.data.provider.QuranManifest.TOTAL_SURAHS).map {
+                Surah(
+                    number = it,
+                    name = com.example.data.provider.QuranManifest.getSurahNameArabic(it),
+                    englishName = "",
+                    ayahs = com.example.data.provider.QuranManifest.getCanonicalAyahCount(it),
+                    type = ""
+                )
+            }
+        }
+
         _offlineTextDownloadState.value = OfflineTextDownloadState(
             isDownloading = true,
-            totalSurahs = surahs.size,
+            totalSurahs = validSurahs.size,
             downloadedSurahs = 0,
-            currentSurahName = surahs.firstOrNull()?.name ?: "",
+            currentSurahName = validSurahs.firstOrNull()?.name ?: "",
             isCompleted = false
         )
 
         managerScope.launch {
             var count = 0
-            for (s in surahs) {
+            for (s in validSurahs) {
                 _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
                     currentSurahName = s.name
                 )
@@ -544,9 +558,9 @@ class AudioDownloadManager(context: Context) {
             }
             _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
                 isDownloading = false,
-                isCompleted = count == surahs.size
+                isCompleted = count == validSurahs.size
             )
-            onFinished(count == surahs.size, count)
+            onFinished(count == validSurahs.size, count)
         }
     }
 }

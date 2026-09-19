@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.download.AudioDownloadManager
 import com.example.data.local.QuranRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -44,5 +45,53 @@ class ThemeColdStartUnitTest {
         // 3. User selects "system"
         repository.setAppTheme("system")
         assertEquals("system", repository.getCachedAppTheme())
+    }
+
+    @Test
+    fun testUpgradeScenario_DataStoreHasDark_MirrorMissing() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repository = QuranRepository(context, AudioDownloadManager(context))
+
+        // Set theme in DataStore first
+        repository.setAppTheme("dark")
+
+        // Simulate app upgrade: wipe the new app_theme_prefs mirror entirely
+        context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+
+        // getCachedAppTheme must safely recover the existing user's selection from DataStore file on disk
+        val recoveredTheme = repository.getCachedAppTheme()
+        assertEquals("dark", recoveredTheme)
+    }
+
+    @Test
+    fun testInvalidTheme_FallbackToSystem() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repository = QuranRepository(context, AudioDownloadManager(context))
+
+        repository.setAppTheme("invalid_theme_value")
+        assertEquals("system", repository.getCachedAppTheme())
+    }
+
+    @Test
+    fun testMirrorMismatch_DataStoreReconcilesMirror() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repository = QuranRepository(context, AudioDownloadManager(context))
+
+        // Legitimate setting in DataStore
+        repository.setAppTheme("light")
+
+        // Force a corrupted/stale value into the mirror SharedPreferences
+        context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            .edit().putString("app_theme", "corrupted_stale").commit()
+
+        // When DataStore flow is collected, it validates and heals the mirror
+        val flowValue = repository.appThemeFlow.first()
+        assertEquals("light", flowValue)
+
+        // Verify mirror was healed
+        val healedCached = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            .getString("app_theme", null)
+        assertEquals("light", healedCached)
     }
 }

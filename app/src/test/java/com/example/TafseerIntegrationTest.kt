@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.provider.EmbeddedTafseerRepository
 import com.example.data.provider.TafseerManager
+import com.example.data.provider.TafseerUnavailableException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -29,25 +31,37 @@ class TafseerIntegrationTest {
     }
 
     @Test
-    fun `embedded tafseer returns authentic commentary for Surah At-Tawbah verse 2`() {
-        val tafseer = EmbeddedTafseerRepository.getEmbeddedTafseer(
-            tafseerId = 1,
-            surahNumber = 9,
-            ayahNumber = 2
-        )
-        assertNotNull(tafseer)
-        assertTrue(tafseer!!.text.contains("أربعة أشهر") || tafseer.text.contains("المشركون"))
+    fun `embedded tafseer returns authentic distinct commentaries for Al-Fatiha across books`() {
+        // Tafseer 1: Al-Muyassar
+        val muyassar = EmbeddedTafseerRepository.getEmbeddedTafseer(1, 1, 1)
+        assertNotNull(muyassar)
+        assertTrue(muyassar!!.text.contains("أبدأ قراءتي مستعيناً باسم الله"))
+
+        // Tafseer 2: Jalalayn
+        val jalalayn = EmbeddedTafseerRepository.getEmbeddedTafseer(2, 1, 1)
+        assertNotNull(jalalayn)
+        assertTrue(jalalayn!!.text.contains("سورة الفاتحة مكية"))
+
+        // Tafseer 3: As-Sa'di
+        val saadi = EmbeddedTafseerRepository.getEmbeddedTafseer(3, 1, 1)
+        assertNotNull(saadi)
+        assertTrue(saadi!!.text.contains("أبتدئ بكل اسم لله تعالى"))
+
+        // Tafseer 4: Ibn Kathir
+        val ibnKathir = EmbeddedTafseerRepository.getEmbeddedTafseer(4, 1, 1)
+        assertNotNull(ibnKathir)
+        assertTrue(ibnKathir!!.text.contains("يقال لها الفاتحة"))
     }
 
     @Test
-    fun `embedded tafseer returns authentic commentary for Surah Al-Mulk verse 2`() {
-        val tafseer = EmbeddedTafseerRepository.getEmbeddedTafseer(
+    fun `embedded tafseer returns null for unverified verses and never synthesizes generic commentary`() {
+        // Surah 55 Ayah 1 is not in the embedded hardcoded sample; must return null rather than generating fake commentary
+        val result = EmbeddedTafseerRepository.getEmbeddedTafseer(
             tafseerId = 1,
-            surahNumber = 67,
-            ayahNumber = 2
+            surahNumber = 55,
+            ayahNumber = 1
         )
-        assertNotNull(tafseer)
-        assertTrue(tafseer!!.text.contains("الموت") && tafseer.text.contains("الحياة"))
+        assertNull("Must return null when authentic commentary is not embedded, never synthesize generic text", result)
     }
 
     @Test
@@ -61,16 +75,29 @@ class TafseerIntegrationTest {
     }
 
     @Test
-    fun `getAyahTafseer fallback provides authentic tafseer without throwing error`() = runBlocking {
+    fun `getAyahTafseer for embedded verse returns success with authentic commentary`() = runBlocking {
         val result = tafseerManager.getAyahTafseer(
             tafseerId = 1,
-            surahNumber = 9,
-            ayahNumber = 2,
-            cleanAyahText = "فَسِيحُواْ فِي ٱلۡأَرۡضِ أَرۡبَعَةَ أَشۡهُرٖ"
+            surahNumber = 1,
+            ayahNumber = 2
         )
         assertTrue(result.isSuccess)
         val text = result.getOrNull()?.text
         assertNotNull(text)
-        assertTrue(text!!.isNotBlank())
+        assertTrue(text!!.contains("الثناء على الله بصفاته"))
+    }
+
+    @Test
+    fun `getAyahTafseer fails honestly when offline and book text is unavailable`() = runBlocking {
+        // Without internet and not embedded, must return failure with TafseerUnavailableException
+        val result = tafseerManager.getAyahTafseer(
+            tafseerId = 8, // Tabari
+            surahNumber = 77,
+            ayahNumber = 50
+        )
+        assertTrue(result.isFailure)
+        val exception = result.exceptionOrNull()
+        assertNotNull(exception)
+        assertTrue(exception is TafseerUnavailableException || exception!!.message!!.contains("التفسير غير متاح"))
     }
 }

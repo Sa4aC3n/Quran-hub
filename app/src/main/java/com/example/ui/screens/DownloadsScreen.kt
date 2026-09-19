@@ -397,14 +397,14 @@ fun DownloadsScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "نصوص وتفاسير المصحف كاملاً",
+                                text = "نصوص المصحف الشريف (114 سورة)",
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = if (offlineTextDownloadState.isDownloading) "جاري تحميل سورة ${offlineTextDownloadState.currentSurahName} (${offlineTextDownloadState.downloadedSurahs}/114)..."
                                        else if (offlineTextDownloadState.isCompleted) "محفوظة بالكامل للقراءة دون اتصال"
-                                       else "حفظ 114 سورة وتفسيرها للتشغيل بدون إنترنت",
+                                       else "حفظ 114 سورة برسم المصحف الشريف للقراءة دون اتصال",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

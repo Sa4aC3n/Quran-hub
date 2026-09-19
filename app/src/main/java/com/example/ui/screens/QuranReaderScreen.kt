@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Headphones
@@ -472,6 +473,59 @@ fun QuranReaderScreen(
                         onOpenDuaKhatm = { showDuaKhatmDialog = true }
                     )
                 }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = cardBg),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "تعذر تحميل نص السورة الكريمة",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = textColor,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "يرجى التحقق من الاتصال بالإنترنت أو إعادة المحاولة",
+                                fontSize = 13.sp,
+                                color = textColor.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Button(
+                                onClick = { onSelectSurah(currentSurahNumber) },
+                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("إعادة المحاولة", fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -787,53 +841,41 @@ fun QuranReaderScreen(
                             )
                         }
                     }
-                } else if (tafseerUiState.errorMessage != null && tafseerUiState.tafseerText.isNullOrBlank()) {
-                    val fallback = ayah.tafsir
-                    if (!fallback.isNullOrBlank()) {
-                        Text(
-                            text = fallback,
-                            fontSize = 15.sp,
-                            lineHeight = 26.sp,
-                            color = textColor.copy(alpha = 0.95f),
-                            textAlign = TextAlign.Justify
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(bgColor, RoundedCornerShape(10.dp))
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = tafseerUiState.errorMessage ?: "تعذر جلب التفسير من المصدر",
-                                fontSize = 13.sp,
-                                color = textColor,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Button(
-                                onClick = {
-                                    onLoadTafseer(ayah, currentSurahNumber, selectedTafseerId)
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("إعادة المحاولة", fontSize = 12.sp)
-                            }
-                        }
-                    }
-                } else {
-                    val content = tafseerUiState.tafseerText ?: ayah.tafsir ?: "تفسير وبيان لمعاني كلمات الآية الكريمة وتوضيح مقاصدها وهداياتها للمؤمنين."
+                } else if (!tafseerUiState.tafseerText.isNullOrBlank()) {
                     Text(
-                        text = content,
+                        text = tafseerUiState.tafseerText!!,
                         fontSize = 15.sp,
                         lineHeight = 26.sp,
                         color = textColor.copy(alpha = 0.95f),
                         textAlign = TextAlign.Justify
                     )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(bgColor, RoundedCornerShape(10.dp))
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = tafseerUiState.errorMessage ?: "التفسير غير متاح حاليًا لهذا الكتاب",
+                            fontSize = 13.sp,
+                            color = textColor,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = {
+                                onLoadTafseer(ayah, currentSurahNumber, selectedTafseerId)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("إعادة المحاولة", fontSize = 12.sp)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

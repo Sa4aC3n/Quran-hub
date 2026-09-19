@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -657,9 +658,23 @@ class QuranRepository(
         prefs[KEY_SURAHS_VIEW_MODE] ?: "grid_3"
     }
 
-    val appThemeFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_APP_THEME] ?: "system"
-    }
+    val appThemeFlow: Flow<String> = context.dataStore.data
+        .catch {
+            emit(androidx.datastore.preferences.core.emptyPreferences())
+        }
+        .map { prefs ->
+            val raw = prefs[KEY_APP_THEME]
+            val validatedTheme = if (raw in listOf("light", "dark", "system")) raw!! else "system"
+            // Reconcile mirror cache on every emission from DataStore (source of truth)
+            try {
+                val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+                val current = sp.getString("app_theme", null)
+                if (current != validatedTheme) {
+                    sp.edit().putString("app_theme", validatedTheme).apply()
+                }
+            } catch (_: Exception) {}
+            validatedTheme
+        }
 
     val dailyReminderEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_DAILY_REMINDER_ENABLED] ?: false
@@ -703,21 +718,49 @@ class QuranRepository(
     }
 
     suspend fun setAppTheme(theme: String) {
+        val validTheme = if (theme in listOf("light", "dark", "system")) theme else "system"
+        // 1. DataStore is authoritative: write to DataStore first
+        context.dataStore.edit { prefs ->
+            prefs[KEY_APP_THEME] = validTheme
+        }
+        // 2. Update mirror cache only after successful DataStore persistence
         try {
             context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
                 .edit()
-                .putString("app_theme", theme)
+                .putString("app_theme", validTheme)
                 .apply()
         } catch (_: Exception) {}
-        context.dataStore.edit { prefs ->
-            prefs[KEY_APP_THEME] = theme
-        }
     }
 
     fun getCachedAppTheme(): String {
         return try {
-            context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
-                .getString("app_theme", "system") ?: "system"
+            val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            val cached = sp.getString("app_theme", null)
+            if (cached != null && cached in listOf("light", "dark", "system")) {
+                return cached
+            }
+
+            // Upgrade scenario: app_theme_prefs not initialized yet, but legacy DataStore file might exist on disk
+            val dataStoreFile = java.io.File(context.filesDir, "datastore/quran_settings.preferences_pb")
+            if (dataStoreFile.exists() && dataStoreFile.length() > 0) {
+                val bytes = dataStoreFile.readBytes()
+                val text = String(bytes, Charsets.ISO_8859_1)
+                val keyIndex = text.indexOf("app_theme")
+                if (keyIndex != -1) {
+                    val searchWindow = text.substring(keyIndex, minOf(text.length, keyIndex + 40))
+                    val migratedTheme = when {
+                        searchWindow.contains("dark") -> "dark"
+                        searchWindow.contains("light") -> "light"
+                        searchWindow.contains("system") -> "system"
+                        else -> null
+                    }
+                    if (migratedTheme != null) {
+                        sp.edit().putString("app_theme", migratedTheme).apply()
+                        return migratedTheme
+                    }
+                }
+            }
+            "system"
         } catch (_: Exception) {
             "system"
         }

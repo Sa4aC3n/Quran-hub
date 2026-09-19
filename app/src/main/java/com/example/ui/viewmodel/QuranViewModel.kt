@@ -983,14 +983,24 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
 
     fun downloadAllQuranTexts() {
         viewModelScope.launch {
-            val allSurahs = _surahs.value
-            _snackbarMessage.emit("بدء تحميل نصوص وتفاسير المصحف الشريف كاملاً (114 سورة) للاستخدام دون اتصال...")
+            val allSurahs = if (_surahs.value.isNotEmpty()) _surahs.value else {
+                (1..com.example.data.provider.QuranManifest.TOTAL_SURAHS).map {
+                    Surah(
+                        number = it,
+                        name = com.example.data.provider.QuranManifest.getSurahNameArabic(it),
+                        englishName = "",
+                        ayahs = com.example.data.provider.QuranManifest.getCanonicalAyahCount(it),
+                        type = ""
+                    )
+                }
+            }
+            _snackbarMessage.emit("بدء حفظ نصوص المصحف الشريف كاملاً (114 سورة) للاستخدام دون اتصال...")
             downloadManager.downloadAllQuranTexts(
                 surahs = allSurahs,
                 fetcher = { surahNum ->
                     try {
-                        repository.getSurahText(surahNum)
-                        true
+                        val text = repository.getSurahText(surahNum)
+                        com.example.data.provider.QuranManifest.validateSurah(text) is com.example.data.provider.QuranManifest.ValidationResult.Valid
                     } catch (_: Exception) {
                         false
                     }
@@ -998,9 +1008,9 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
                 onFinished = { success, count ->
                     viewModelScope.launch {
                         if (success) {
-                            _snackbarMessage.emit("تم تحميل نصوص وتفاسير المصحف كاملاً (114 سورة) بنجاح!")
+                            _snackbarMessage.emit("تم حفظ نصوص المصحف الشريف كاملاً (114 سورة) بنجاح للاستخدام دون اتصال")
                         } else {
-                            _snackbarMessage.emit("تم تحميل $count من 114 سورة للاستخدام بدون نت")
+                            _snackbarMessage.emit("تم حفظ $count من 114 سورة للاستخدام دون اتصال")
                         }
                     }
                 }

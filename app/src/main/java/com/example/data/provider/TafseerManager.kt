@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
 data class TafseerUiState(
@@ -27,22 +28,39 @@ data class TafseerUiState(
     val errorMessage: String? = null
 )
 
+class TafseerUnavailableException(val tafseerId: Int, message: String) : Exception(message)
+
+/**
+ * Authentic Tafseer Manager adhering strictly to classical commentaries.
+ * Never fabricates or synthesizes generic commentary.
+ * Uses versioned cache (tafseer_cache_v2) with atomic disk writes.
+ */
 class TafseerManager(context: Context) {
 
     private val appContext = context.applicationContext
     private val api = TafseerApi.create()
     private val prefs: SharedPreferences = appContext.getSharedPreferences("tafseer_prefs", Context.MODE_PRIVATE)
-    private val cacheDir = File(appContext.cacheDir, "tafseer_cache").apply { mkdirs() }
+    private val cacheDir = File(appContext.filesDir, "tafseer_cache_v2").apply { mkdirs() }
     private val gson = Gson()
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(6, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
         .build()
+
+    init {
+        // Invalidate legacy unverified v1 cache if present
+        try {
+            val legacyCache = File(appContext.cacheDir, "tafseer_cache")
+            if (legacyCache.exists()) {
+                legacyCache.deleteRecursively()
+            }
+        } catch (_: Exception) {}
+    }
 
     private val defaultTafseers = listOf(
         TafseerItem(id = 1, name = "التفسير الميسر", language = "ar", author = "مجمع الملك فهد لطباعة المصحف الشريف", bookName = "التفسير الميسر"),
-        TafseerItem(id = 3, name = "تفسير السعدي", language = "ar", author = "الشيخ عبد الرحمن بن ناصر السعدي", bookName = "تيسير الكريم الرحمن"),
         TafseerItem(id = 2, name = "تفسير الجلالين", language = "ar", author = "جلال الدين المحلي وجلال الدين السيوطي", bookName = "تفسير الجلالين"),
+        TafseerItem(id = 3, name = "تفسير السعدي", language = "ar", author = "الشيخ عبد الرحمن بن ناصر السعدي", bookName = "تيسير الكريم الرحمن"),
         TafseerItem(id = 4, name = "تفسير ابن كثير", language = "ar", author = "الحافظ عماد الدين ابن كثير", bookName = "تفسير القرآن العظيم"),
         TafseerItem(id = 9, name = "المختصر في التفسير", language = "ar", author = "مركز تفسير للدراسات القرآنية", bookName = "المختصر في التفسير"),
         TafseerItem(id = 5, name = "التفسير الوسيط", language = "ar", author = "الإمام الأكبر د. محمد سيد طنطاوي", bookName = "التفسير الوسيط"),
@@ -71,6 +89,10 @@ class TafseerManager(context: Context) {
         defaultTafseers
     }
 
+    /**
+     * Fetches authentic commentary for the specified book and ayah.
+     * Guaranteed to NEVER fabricate commentary or mix books.
+     */
     suspend fun getAyahTafseer(
         tafseerId: Int,
         surahNumber: Int,
@@ -80,21 +102,31 @@ class TafseerManager(context: Context) {
         val cacheKey = "tafseer_${tafseerId}_${surahNumber}_${ayahNumber}.json"
         val cacheFile = File(cacheDir, cacheKey)
 
-        // 1. Check local file cache
-        if (cacheFile.exists()) {
+        // 1. Check verified persistent v2 local cache
+        if (cacheFile.exists() && cacheFile.length() > 0L) {
             try {
                 val cachedJson = cacheFile.readText()
                 val response = gson.fromJson(cachedJson, AyahTafseerResponse::class.java)
-                if (!response.text.isNullOrBlank()) {
+                if (response != null && !response.text.isNullOrBlank() && response.tafseerId == tafseerId) {
                     return@withContext Result.success(response)
                 }
             } catch (e: Exception) {
-                Log.w("TafseerManager", "Failed reading cached tafseer", e)
+                cacheFile.delete()
             }
         }
 
-        // 2. Try online sources with failover
-        // Source A: QuranEnc API (Super reliable, high uptime)
+        // 2. Check embedded authentic verified repository for this specific book
+        val embeddedTafseer = EmbeddedTafseerRepository.getEmbeddedTafseer(
+            tafseerId = tafseerId,
+            surahNumber = surahNumber,
+            ayahNumber = ayahNumber
+        )
+        if (embeddedTafseer != null && embeddedTafseer.text.isNotBlank()) {
+            saveTafseerToDiskAtomic(embeddedTafseer, cacheFile)
+            return@withContext Result.success(embeddedTafseer)
+        }
+
+        // 3. Online Source A: QuranEnc API (Strictly for supported authentic books)
         val quranEncKey = when (tafseerId) {
             1 -> "arabic_moyassar"
             3 -> "arabic_saadi"
@@ -108,23 +140,25 @@ class TafseerManager(context: Context) {
                 val url = "https://quranenc.com/api/v1/translation/aya/$quranEncKey/$surahNumber/$ayahNumber"
                 val request = Request.Builder().url(url).build()
                 val response = httpClient.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (!body.isNullOrBlank()) {
-                        val json = gson.fromJson(body, JsonObject::class.java)
-                        val resultObj = json.getAsJsonObject("result")
-                        if (resultObj != null && resultObj.has("translation")) {
-                            val text = resultObj.get("translation").asString
-                            if (text.isNotBlank()) {
-                                val tafseerResp = AyahTafseerResponse(
-                                    tafseerId = tafseerId,
-                                    tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
-                                    ayahUrl = "",
-                                    ayahNumber = ayahNumber,
-                                    text = text.trim()
-                                )
-                                cacheFile.writeText(gson.toJson(tafseerResp))
-                                return@withContext Result.success(tafseerResp)
+                response.use { res ->
+                    if (res.isSuccessful) {
+                        val body = res.body?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = gson.fromJson(body, JsonObject::class.java)
+                            val resultObj = json.getAsJsonObject("result")
+                            if (resultObj != null && resultObj.has("translation")) {
+                                val text = resultObj.get("translation").asString
+                                if (text.isNotBlank()) {
+                                    val tafseerResp = AyahTafseerResponse(
+                                        tafseerId = tafseerId,
+                                        tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
+                                        ayahUrl = "",
+                                        ayahNumber = ayahNumber,
+                                        text = text.trim()
+                                    )
+                                    saveTafseerToDiskAtomic(tafseerResp, cacheFile)
+                                    return@withContext Result.success(tafseerResp)
+                                }
                             }
                         }
                     }
@@ -134,7 +168,7 @@ class TafseerManager(context: Context) {
             }
         }
 
-        // Source B: Al-Quran Cloud API
+        // 4. Online Source B: Al-Quran Cloud API (Strictly for supported authentic books)
         val alQuranCloudKey = when (tafseerId) {
             1 -> "ar.muyassar"
             2 -> "ar.jalalayn"
@@ -147,23 +181,25 @@ class TafseerManager(context: Context) {
                 val url = "https://api.alquran.cloud/v1/ayah/$surahNumber:$ayahNumber/$alQuranCloudKey"
                 val request = Request.Builder().url(url).build()
                 val response = httpClient.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (!body.isNullOrBlank()) {
-                        val json = gson.fromJson(body, JsonObject::class.java)
-                        val dataObj = json.getAsJsonObject("data")
-                        if (dataObj != null && dataObj.has("text")) {
-                            val text = dataObj.get("text").asString
-                            if (text.isNotBlank()) {
-                                val tafseerResp = AyahTafseerResponse(
-                                    tafseerId = tafseerId,
-                                    tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
-                                    ayahUrl = "",
-                                    ayahNumber = ayahNumber,
-                                    text = text.trim()
-                                )
-                                cacheFile.writeText(gson.toJson(tafseerResp))
-                                return@withContext Result.success(tafseerResp)
+                response.use { res ->
+                    if (res.isSuccessful) {
+                        val body = res.body?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = gson.fromJson(body, JsonObject::class.java)
+                            val dataObj = json.getAsJsonObject("data")
+                            if (dataObj != null && dataObj.has("text")) {
+                                val text = dataObj.get("text").asString
+                                if (text.isNotBlank()) {
+                                    val tafseerResp = AyahTafseerResponse(
+                                        tafseerId = tafseerId,
+                                        tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
+                                        ayahUrl = "",
+                                        ayahNumber = ayahNumber,
+                                        text = text.trim()
+                                    )
+                                    saveTafseerToDiskAtomic(tafseerResp, cacheFile)
+                                    return@withContext Result.success(tafseerResp)
+                                }
                             }
                         }
                     }
@@ -173,30 +209,46 @@ class TafseerManager(context: Context) {
             }
         }
 
-        // Source C: Quran-Tafseer API
+        // 5. Online Source C: Quran-Tafseer API (Strictly matching book ID)
         try {
             val response = api.getAyahTafseer(tafseerId, surahNumber, ayahNumber)
             if (!response.text.isNullOrBlank()) {
-                cacheFile.writeText(gson.toJson(response))
-                return@withContext Result.success(response)
+                val validatedResp = response.copy(
+                    tafseerId = tafseerId,
+                    tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+                )
+                saveTafseerToDiskAtomic(validatedResp, cacheFile)
+                return@withContext Result.success(validatedResp)
             }
         } catch (e: Exception) {
             Log.d("TafseerManager", "Quran-Tafseer API attempt failed: ${e.message}")
         }
 
-        // 3. Fallback to Embedded Authentic Classical Repository (Guarantees 100% availability offline)
-        val embeddedTafseer = EmbeddedTafseerRepository.getEmbeddedTafseer(
-            tafseerId = tafseerId,
-            surahNumber = surahNumber,
-            ayahNumber = ayahNumber,
-            cleanAyahText = cleanAyahText
+        // 6. When unavailable both locally and remotely: return honest failure
+        val bookName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+        Result.failure(
+            TafseerUnavailableException(
+                tafseerId,
+                "التفسير غير متاح حاليًا لـ ($bookName) دون اتصال بالإنترنت"
+            )
         )
+    }
 
-        if (embeddedTafseer != null && embeddedTafseer.text.isNotBlank()) {
-            cacheFile.writeText(gson.toJson(embeddedTafseer))
-            return@withContext Result.success(embeddedTafseer)
+    private fun saveTafseerToDiskAtomic(response: AyahTafseerResponse, targetFile: File) {
+        val tempFile = File(cacheDir, "${targetFile.name}.tmp")
+        try {
+            val json = gson.toJson(response)
+            FileOutputStream(tempFile).use { fos ->
+                fos.write(json.toByteArray(Charsets.UTF_8))
+                fos.flush()
+                fos.fd.sync()
+            }
+            if (tempFile.exists() && tempFile.length() > 0L) {
+                if (targetFile.exists()) targetFile.delete()
+                tempFile.renameTo(targetFile)
+            }
+        } catch (_: Exception) {
+            if (tempFile.exists()) tempFile.delete()
         }
-
-        Result.failure(Exception("تعذر استحضار التفسير لهذه الآية، يرجى اختيار كتاب تفسير آخر"))
     }
 }
