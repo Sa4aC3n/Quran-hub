@@ -68,15 +68,17 @@ class AudioDownloadManager(context: Context) {
     private val textProvider = com.example.data.provider.QuranTextProvider(appContext)
 
     init {
-        scanExistingDownloads()
-        val initialCount = textProvider.getDownloadedSurahsCount()
-        _offlineTextDownloadState.value = OfflineTextDownloadState(
-            isDownloading = false,
-            totalSurahs = com.example.data.provider.QuranManifest.TOTAL_SURAHS,
-            downloadedSurahs = initialCount,
-            currentSurahName = "",
-            isCompleted = (initialCount == com.example.data.provider.QuranManifest.TOTAL_SURAHS)
-        )
+        managerScope.launch(Dispatchers.IO) {
+            scanExistingDownloads()
+            val initialCount = textProvider.getDownloadedSurahsCount()
+            _offlineTextDownloadState.value = OfflineTextDownloadState(
+                isDownloading = false,
+                totalSurahs = com.example.data.provider.QuranManifest.TOTAL_SURAHS,
+                downloadedSurahs = initialCount,
+                currentSurahName = "",
+                isCompleted = (initialCount == com.example.data.provider.QuranManifest.TOTAL_SURAHS)
+            )
+        }
     }
 
     private fun getFileKey(reciterId: String, surahNumber: Int): String {
@@ -544,7 +546,9 @@ class AudioDownloadManager(context: Context) {
         )
 
         managerScope.launch {
+            val verifiedSet = textProvider.getVerifiedDownloadedSurahNumbers().toMutableSet()
             var failedCount = 0
+
             for (surahNumber in 1..totalSurahs) {
                 if (!isActive) break
 
@@ -554,10 +558,9 @@ class AudioDownloadManager(context: Context) {
                 )
 
                 // 2. Only skip if already validated locally on disk
-                if (textProvider.isSurahDownloaded(surahNumber)) {
-                    currentDownloaded = textProvider.getDownloadedSurahsCount()
+                if (surahNumber in verifiedSet) {
                     _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
-                        downloadedSurahs = currentDownloaded
+                        downloadedSurahs = verifiedSet.size
                     )
                     continue
                 }
@@ -566,7 +569,7 @@ class AudioDownloadManager(context: Context) {
                 try {
                     val success = fetcher(surahNumber)
                     if (success && textProvider.isSurahDownloaded(surahNumber)) {
-                        currentDownloaded = textProvider.getDownloadedSurahsCount()
+                        verifiedSet.add(surahNumber)
                     } else {
                         failedCount++
                     }
@@ -577,13 +580,13 @@ class AudioDownloadManager(context: Context) {
                 }
 
                 _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(
-                    downloadedSurahs = currentDownloaded,
+                    downloadedSurahs = verifiedSet.size,
                     failedSurahs = failedCount
                 )
             }
 
             // 4. Final verification of all 114 surahs on disk
-            val finalVerifiedCount = textProvider.getDownloadedSurahsCount()
+            val finalVerifiedCount = textProvider.getVerifiedDownloadedSurahNumbers().size
             val isAllCompleted = (finalVerifiedCount == totalSurahs)
 
             _offlineTextDownloadState.value = _offlineTextDownloadState.value.copy(

@@ -27,10 +27,18 @@ class QuranTextUnavailableException(val surahNumber: Int, message: String) : Exc
 data class SurahStorageEnvelope(
     val schemaVersion: Int = 2,
     val surahNumber: Int,
-    val sourceProvider: String = "Tanzil Authentic Quran Text",
-    val dataVersion: String = "1.0",
+    val sourceProvider: String,
+    val editionIdentifier: String,
+    val datasetVersion: String,
     val timestamp: Long = System.currentTimeMillis(),
     val surahText: SurahText
+)
+
+data class FetchedSurahPayload(
+    val surahText: SurahText,
+    val sourceProvider: String,
+    val editionIdentifier: String,
+    val datasetVersion: String
 )
 
 /**
@@ -63,24 +71,56 @@ class QuranTextProvider(private val context: Context) {
 
     /**
      * Reads and authenticates a surah text file using Android AtomicFile.
-     * Backwards-compatible with both enveloped (v2) and direct (v1) formats.
+     * Enforces lock protection, opens through AtomicFile.openRead without pre-checking file existence,
+     * and strictly validates schemaVersion, envelope identity, provider, and canonical text invariants.
      */
     fun readSurahFromFile(file: File, expectedSurahNumber: Int): SurahText? {
-        if (!file.exists() || file.length() == 0L) return null
         val lock = StorageLockManager.getLockFor(file)
         return synchronized(lock) {
             try {
                 val atomicFile = android.util.AtomicFile(file)
-                val json = atomicFile.openRead().use { stream ->
-                    stream.bufferedReader(Charsets.UTF_8).readText()
+                val json = try {
+                    atomicFile.openRead().use { stream ->
+                        stream.bufferedReader(Charsets.UTF_8).readText()
+                    }
+                } catch (_: java.io.FileNotFoundException) {
+                    return@synchronized null
+                } catch (_: Exception) {
+                    return@synchronized null
                 }
-                val jsonObject = gson.fromJson(json, JsonObject::class.java)
-                val surah = if (jsonObject != null && jsonObject.has("schemaVersion") && jsonObject.has("surahText")) {
-                    gson.fromJson(jsonObject.get("surahText"), SurahText::class.java)
-                } else {
-                    gson.fromJson(json, SurahText::class.java)
+
+                if (json.isBlank()) return@synchronized null
+
+                val jsonObject = try {
+                    gson.fromJson(json, JsonObject::class.java)
+                } catch (_: Exception) {
+                    null
+                } ?: return@synchronized null
+
+                if (!jsonObject.has("schemaVersion")) {
+                    return@synchronized null // Reject unversioned content
                 }
-                if (surah != null && QuranManifest.validateSurah(surah, expectedSurahNumber) is QuranManifest.ValidationResult.Valid) {
+                val schemaVersion = jsonObject.get("schemaVersion").asInt
+                val surah = when (schemaVersion) {
+                    2 -> {
+                        val envSurahNum = jsonObject.get("surahNumber")?.asInt ?: return@synchronized null
+                        if (envSurahNum != expectedSurahNumber) return@synchronized null
+                        val provider = jsonObject.get("sourceProvider")?.asString
+                        if (provider.isNullOrBlank()) return@synchronized null
+                        val surahTextElem = jsonObject.get("surahText") ?: return@synchronized null
+                        gson.fromJson(surahTextElem, SurahText::class.java)
+                    }
+                    1 -> {
+                        val surahTextElem = jsonObject.get("surahText") ?: return@synchronized null
+                        gson.fromJson(surahTextElem, SurahText::class.java)
+                    }
+                    else -> return@synchronized null // Reject unsupported schemas
+                }
+
+                if (surah != null &&
+                    surah.number == expectedSurahNumber &&
+                    QuranManifest.validateSurah(surah, expectedSurahNumber) is QuranManifest.ValidationResult.Valid
+                ) {
                     surah
                 } else {
                     null
@@ -146,7 +186,13 @@ class QuranTextProvider(private val context: Context) {
 
         // 3. Check bundled authentic curated baseline
         loadCuratedBundledSurah(surahNumber)?.let { bundled ->
-            val result = saveSurahToDiskAtomic(bundled, expectedSurahNumber)
+            val result = saveSurahToDiskAtomic(
+                surah = bundled,
+                expectedSurahNumber = expectedSurahNumber,
+                sourceProvider = "King Fahd Complex for Printing the Holy Quran",
+                editionIdentifier = "Mushaf al-Madinah 1430H",
+                datasetVersion = "1430H-v1"
+            )
             if (result is PersistenceResult.Success) {
                 return@withContext result
             }
@@ -155,7 +201,13 @@ class QuranTextProvider(private val context: Context) {
         // 4. Fetch full Uthmani text online and persist
         val remote = fetchSurahFromRemote(surahNumber)
         if (remote != null) {
-            return@withContext saveSurahToDiskAtomic(remote, expectedSurahNumber)
+            return@withContext saveSurahToDiskAtomic(
+                surah = remote.surahText,
+                expectedSurahNumber = expectedSurahNumber,
+                sourceProvider = remote.sourceProvider,
+                editionIdentifier = remote.editionIdentifier,
+                datasetVersion = remote.datasetVersion
+            )
         }
 
         PersistenceResult.Failure(surahNumber, "تعذر جلب نص السورة الكريمة لحفظها دون اتصال")
@@ -194,20 +246,32 @@ class QuranTextProvider(private val context: Context) {
         // 3. Check bundled authentic curated baseline for offline opening
         loadCuratedBundledSurah(surahNumber)?.let { bundled ->
             if (QuranManifest.validateSurah(bundled, surahNumber) is QuranManifest.ValidationResult.Valid) {
-                saveSurahToDiskAtomic(bundled, surahNumber)
+                saveSurahToDiskAtomic(
+                    surah = bundled,
+                    expectedSurahNumber = surahNumber,
+                    sourceProvider = "King Fahd Complex for Printing the Holy Quran",
+                    editionIdentifier = "Mushaf al-Madinah 1430H",
+                    datasetVersion = "1430H-v1"
+                )
                 cache[surahNumber] = bundled
                 return@withContext bundled
             }
         }
 
         // 4. Fetch full Uthmani text via primary and secondary Quran Cloud APIs
-        val fetchedSurah = fetchSurahFromRemote(surahNumber)
-        if (fetchedSurah != null) {
-            val validation = QuranManifest.validateSurah(fetchedSurah, surahNumber)
+        val fetchedPayload = fetchSurahFromRemote(surahNumber)
+        if (fetchedPayload != null) {
+            val validation = QuranManifest.validateSurah(fetchedPayload.surahText, surahNumber)
             if (validation is QuranManifest.ValidationResult.Valid) {
-                saveSurahToDiskAtomic(fetchedSurah, surahNumber)
-                cache[surahNumber] = fetchedSurah
-                return@withContext fetchedSurah
+                saveSurahToDiskAtomic(
+                    surah = fetchedPayload.surahText,
+                    expectedSurahNumber = surahNumber,
+                    sourceProvider = fetchedPayload.sourceProvider,
+                    editionIdentifier = fetchedPayload.editionIdentifier,
+                    datasetVersion = fetchedPayload.datasetVersion
+                )
+                cache[surahNumber] = fetchedPayload.surahText
+                return@withContext fetchedPayload.surahText
             }
         }
 
@@ -218,13 +282,13 @@ class QuranTextProvider(private val context: Context) {
         )
     }
 
-    private fun fetchSurahFromRemote(surahNumber: Int): SurahText? {
+    private fun fetchSurahFromRemote(surahNumber: Int): FetchedSurahPayload? {
         val urls = listOf(
-            "https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani",
-            "https://api.alquran.cloud/v1/surah/$surahNumber/ar.alafasy"
+            Triple("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani", "api.alquran.cloud", "quran-uthmani"),
+            Triple("https://api.alquran.cloud/v1/surah/$surahNumber/ar.alafasy", "api.alquran.cloud", "ar.alafasy")
         )
 
-        for (url in urls) {
+        for ((url, provider, edition) in urls) {
             try {
                 val request = Request.Builder().url(url).build()
                 val response = httpClient.newCall(request).execute()
@@ -292,7 +356,12 @@ class QuranTextProvider(private val context: Context) {
                                 )
 
                                 if (QuranManifest.validateSurah(result) is QuranManifest.ValidationResult.Valid) {
-                                    return result
+                                    return FetchedSurahPayload(
+                                        surahText = result,
+                                        sourceProvider = provider,
+                                        editionIdentifier = edition,
+                                        datasetVersion = "UNKNOWN"
+                                    )
                                 }
                             }
                         }
@@ -331,7 +400,13 @@ class QuranTextProvider(private val context: Context) {
      * Atomically writes the validated surah to persistent disk storage using Android AtomicFile (API 24/25+ compatible).
      * Enforces strict read-back verification and never leaves corrupted or partial files.
      */
-    fun saveSurahToDiskAtomic(surah: SurahText, expectedSurahNumber: Int = surah.number): PersistenceResult {
+    fun saveSurahToDiskAtomic(
+        surah: SurahText,
+        expectedSurahNumber: Int = surah.number,
+        sourceProvider: String = "King Fahd Complex for Printing the Holy Quran",
+        editionIdentifier: String = "Mushaf al-Madinah 1430H",
+        datasetVersion: String = "1430H-v1"
+    ): PersistenceResult {
         val validation = QuranManifest.validateSurah(surah, expectedSurahNumber)
         if (validation !is QuranManifest.ValidationResult.Valid) {
             val reason = (validation as? QuranManifest.ValidationResult.Invalid)?.reason ?: "بيانات السورة غير صالحة"
@@ -347,8 +422,10 @@ class QuranTextProvider(private val context: Context) {
                 val envelope = SurahStorageEnvelope(
                     schemaVersion = 2,
                     surahNumber = surah.number,
-                    sourceProvider = "Tanzil Authentic Quran Text",
-                    dataVersion = "1.0",
+                    sourceProvider = sourceProvider,
+                    editionIdentifier = editionIdentifier,
+                    datasetVersion = datasetVersion,
+                    timestamp = System.currentTimeMillis(),
                     surahText = surah
                 )
                 val json = gson.toJson(envelope)
@@ -357,9 +434,7 @@ class QuranTextProvider(private val context: Context) {
                 fos = atomicFile.startWrite()
                 fos.write(bytes)
                 fos.flush()
-                try {
-                    fos.fd.sync()
-                } catch (_: Exception) {}
+                fos.fd.sync()
                 atomicFile.finishWrite(fos)
                 fos = null
             } catch (e: Exception) {

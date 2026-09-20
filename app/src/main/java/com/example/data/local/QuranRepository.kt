@@ -47,7 +47,9 @@ import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,8 +59,16 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.InputStreamReader
+
+sealed class ThemeInitializationState {
+    object Loading : ThemeInitializationState()
+    data class Ready(val theme: String) : ThemeInitializationState()
+    data class ReadError(val fallbackTheme: String) : ThemeInitializationState()
+}
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "quran_settings")
 
@@ -661,33 +671,45 @@ class QuranRepository(
         prefs[KEY_SURAHS_VIEW_MODE] ?: "grid_3"
     }
 
+    private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val _themeInitializationState = MutableStateFlow<ThemeInitializationState>(ThemeInitializationState.Loading)
+    val themeInitializationState: StateFlow<ThemeInitializationState> = _themeInitializationState.asStateFlow()
+
     val appThemeFlow: Flow<String> = flow {
         // 1. Emit verified local mirror immediately for zero-flicker cold-start
         val initialTheme = getCachedAppTheme()
         emit(initialTheme)
 
-        // 2. Collect authoritative DataStore asynchronously
+        // 2. Continuously observe authoritative DataStore
         context.dataStore.data
             .catch { e ->
-                // Guard: Never emit empty preferences on transient failure; preserve current state
-                Log.w("QuranRepository", "DataStore read error occurred, retaining active theme", e)
+                Log.w("QuranRepository", "DataStore theme stream error", e)
+                val fallback = getCachedAppTheme()
+                _themeInitializationState.value = ThemeInitializationState.ReadError(fallback)
             }
             .collect { prefs ->
                 val raw = prefs[KEY_APP_THEME]
-                if (raw != null) {
-                    val validatedTheme = if (raw in listOf("light", "dark", "system")) raw else "system"
-                    // Reconcile mirror cache on every emission from DataStore (source of truth)
-                    try {
-                        val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
-                        val current = sp.getString("app_theme", null)
-                        if (current != validatedTheme) {
-                            sp.edit().putString("app_theme", validatedTheme).commit()
-                        }
-                    } catch (_: Exception) {}
-                    emit(validatedTheme)
+                val validatedTheme = when (raw) {
+                    "light", "dark", "system" -> raw
+                    null -> "system"
+                    else -> "system"
                 }
+                updateMirrorCache(validatedTheme)
+                _themeInitializationState.value = ThemeInitializationState.Ready(validatedTheme)
+                emit(validatedTheme)
             }
     }.distinctUntilChanged()
+
+    private suspend fun updateMirrorCache(theme: String) = withContext(Dispatchers.IO) {
+        try {
+            val sp = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            val current = sp.getString("app_theme", null)
+            if (current != theme) {
+                sp.edit().putString("app_theme", theme).commit()
+            }
+        } catch (_: Exception) {}
+    }
 
     val dailyReminderEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_DAILY_REMINDER_ENABLED] ?: false
@@ -730,19 +752,15 @@ class QuranRepository(
         }
     }
 
-    suspend fun setAppTheme(theme: String) {
+    suspend fun setAppTheme(theme: String) = withContext(Dispatchers.IO) {
         val validTheme = if (theme in listOf("light", "dark", "system")) theme else "system"
         // 1. DataStore is authoritative: write to DataStore first
         context.dataStore.edit { prefs ->
             prefs[KEY_APP_THEME] = validTheme
         }
-        // 2. Update mirror cache only after successful DataStore persistence
-        try {
-            context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .putString("app_theme", validTheme)
-                .apply()
-        } catch (_: Exception) {}
+        // 2. Update state and mirror cache non-blockingly on IO dispatcher
+        _themeInitializationState.value = ThemeInitializationState.Ready(validTheme)
+        updateMirrorCache(validTheme)
     }
 
     fun getCachedAppTheme(): String {
@@ -895,12 +913,12 @@ class QuranRepository(
         return textProvider.getSurahText(surahNumber)
     }
 
-    fun isSurahDownloaded(surahNumber: Int): Boolean {
-        return textProvider.isSurahDownloaded(surahNumber)
+    suspend fun isSurahDownloaded(surahNumber: Int): Boolean = withContext(Dispatchers.IO) {
+        textProvider.isSurahDownloaded(surahNumber)
     }
 
-    fun getDownloadedSurahsCount(): Int {
-        return textProvider.getDownloadedSurahsCount()
+    suspend fun getDownloadedSurahsCount(): Int = withContext(Dispatchers.IO) {
+        textProvider.getDownloadedSurahsCount()
     }
 
     suspend fun ensureSurahPersisted(surahNumber: Int): com.example.data.provider.PersistenceResult {

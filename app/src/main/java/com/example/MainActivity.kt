@@ -129,13 +129,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: QuranViewModel = viewModel()
             quranViewModel = viewModel
+            val themeInitState by viewModel.themeInitializationState.collectAsState()
             val appTheme by viewModel.appTheme.collectAsState()
 
             LaunchedEffect(intent) {
                 handleHaramIntent(intent, viewModel)
             }
 
-            val isDark = when (appTheme) {
+            val activeTheme = when (val state = themeInitState) {
+                is com.example.data.local.ThemeInitializationState.Ready -> state.theme
+                is com.example.data.local.ThemeInitializationState.ReadError -> state.fallbackTheme
+                is com.example.data.local.ThemeInitializationState.Loading -> appTheme
+                else -> appTheme
+            }
+
+            val isDark = when (activeTheme) {
                 "dark" -> true
                 "light" -> false
                 else -> isSystemInDarkTheme()
@@ -553,6 +561,7 @@ fun QuranAppRoot(
                                         availableTafseers = availableTafseers,
                                         selectedTafseerId = selectedTafseerId,
                                         tafseerUiState = tafseerUiState,
+                                        tafseerDownloadProgress = tafseerDownloadProgress,
                                         activeAyahNumber = activeAyahNumber,
                                         activeWordIndex = activeWordIndex,
                                         onSelectSurah = { sNum ->

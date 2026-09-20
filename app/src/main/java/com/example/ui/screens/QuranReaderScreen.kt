@@ -124,6 +124,7 @@ import com.example.ui.components.IslamicGeometricCornerDecorations
 import com.example.ui.components.IslamicOrnamentalDivider
 import com.example.ui.components.IslamicStarMedallion
 import com.example.data.provider.TafseerUiState
+import com.example.data.provider.TafseerDownloadProgress
 import com.example.data.remote.TafseerItem
 import com.example.ui.components.IslamicGeometricBackground
 import com.example.ui.components.share.AyahShareModalSheet
@@ -144,6 +145,7 @@ fun QuranReaderScreen(
     availableTafseers: List<TafseerItem> = emptyList(),
     selectedTafseerId: Int = 1,
     tafseerUiState: TafseerUiState = TafseerUiState(),
+    tafseerDownloadProgress: TafseerDownloadProgress? = null,
     activeAyahNumber: Int? = null,
     activeWordIndex: Int? = null,
     onSelectSurah: (Int) -> Unit,
@@ -935,23 +937,65 @@ fun QuranReaderScreen(
                 }
 
                 if (onDownloadSurahTafseer != null) {
+                    val activeSurahNum = surahText?.number ?: currentSurahNumber
+                    val isCurrentDownloading = tafseerDownloadProgress != null &&
+                        tafseerDownloadProgress.isDownloading &&
+                        tafseerDownloadProgress.tafseerId == selectedTafseerId &&
+                        tafseerDownloadProgress.surahNumber == activeSurahNum
+
                     Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedButton(
-                        onClick = {
-                            onDownloadSurahTafseer(selectedTafseerId, surahText?.number ?: currentSurahNumber)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
-                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "تحميل تفسير سورة ${currentSurahMeta?.name ?: ""} بالكامل دون اتصال",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    if (isCurrentDownloading) {
+                        val total = tafseerDownloadProgress!!.totalAyahs.coerceAtLeast(1)
+                        val persisted = tafseerDownloadProgress.persistedAyahs
+                        val fraction = (persisted.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.12f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "جاري حفظ تفسير (${tafseerDownloadProgress.tafseerName}) لسورة ${tafseerDownloadProgress.surahName}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accentColor
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "تم حفظ $persisted من أصل $total آية (${(fraction * 100).toInt()}%)",
+                                    fontSize = 11.sp,
+                                    color = textColor.copy(alpha = 0.8f)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = { fraction },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = accentColor,
+                                    trackColor = textColor.copy(alpha = 0.15f)
+                                )
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                onDownloadSurahTafseer(selectedTafseerId, activeSurahNum)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
+                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "تحميل تفسير سورة ${currentSurahMeta?.name ?: ""} بالكامل دون اتصال",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 

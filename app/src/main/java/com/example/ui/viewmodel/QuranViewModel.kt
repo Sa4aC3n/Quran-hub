@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.download.AudioDownloadManager
 import com.example.data.download.StorageFileInfo
 import com.example.data.local.QuranRepository
+import com.example.data.local.ThemeInitializationState
 import com.example.data.model.AudioQualityLevel
 import com.example.data.model.Ayah
 import com.example.data.model.BulkDownloadProgress
@@ -180,6 +181,8 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
 
     val surahsViewMode: StateFlow<String> = repository.surahsViewModeFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, "grid_3")
+
+    val themeInitializationState: StateFlow<ThemeInitializationState> = repository.themeInitializationState
 
     val appTheme: StateFlow<String> = repository.appThemeFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getCachedAppTheme())

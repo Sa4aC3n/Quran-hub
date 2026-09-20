@@ -8,6 +8,7 @@ import com.example.data.remote.TafseerApi
 import com.example.data.remote.TafseerItem
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -31,6 +32,35 @@ data class TafseerUiState(
 )
 
 class TafseerUnavailableException(val tafseerId: Int, message: String) : Exception(message)
+
+data class TafseerStorageEnvelope(
+    @SerializedName("schema_version") val schemaVersion: Int = 2,
+    @SerializedName("tafseer_id") val tafseerId: Int,
+    @SerializedName("surah_number") val surahNumber: Int,
+    @SerializedName("ayah_number") val ayahNumber: Int,
+    @SerializedName("source_provider") val sourceProvider: String,
+    @SerializedName("dataset_version") val datasetVersion: String,
+    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis(),
+    @SerializedName("response") val response: AyahTafseerResponse
+)
+
+sealed class TafseerRangeResult {
+    data class CompleteSuccess(
+        val totalPersistedAyahs: Int,
+        val totalSurahs: Int
+    ) : TafseerRangeResult()
+
+    data class PartialSuccess(
+        val totalPersistedAyahs: Int,
+        val successfulSurahs: Int,
+        val failedSurahs: Int,
+        val details: String
+    ) : TafseerRangeResult()
+
+    data class Failure(
+        val reason: String
+    ) : TafseerRangeResult()
+}
 
 sealed class TafseerPersistenceResult {
     data class Success(val tafseerId: Int, val surahNumber: Int, val ayahNumber: Int, val file: File) : TafseerPersistenceResult()
@@ -115,22 +145,64 @@ class TafseerManager(context: Context) {
 
     /**
      * Reads and authenticates a cached tafseer file using Android AtomicFile.
+     * Enforces schema validation and verifiable provenance.
      */
     fun readTafseerFromFile(file: File, expectedTafseerId: Int, expectedSurah: Int, expectedAyah: Int): AyahTafseerResponse? {
-        if (!file.exists() || file.length() == 0L) return null
         val lock = StorageLockManager.getLockFor(file)
         return synchronized(lock) {
             try {
                 val atomicFile = android.util.AtomicFile(file)
-                val json = atomicFile.openRead().use { stream ->
-                    stream.bufferedReader(Charsets.UTF_8).readText()
+                val json = try {
+                    atomicFile.openRead().use { stream ->
+                        stream.bufferedReader(Charsets.UTF_8).readText()
+                    }
+                } catch (_: java.io.FileNotFoundException) {
+                    return@synchronized null
+                } catch (_: Exception) {
+                    return@synchronized null
                 }
-                val response = gson.fromJson(json, AyahTafseerResponse::class.java)
+
+                if (json.isBlank()) return@synchronized null
+
+                val jsonObject = try {
+                    gson.fromJson(json, JsonObject::class.java)
+                } catch (_: Exception) {
+                    null
+                } ?: return@synchronized null
+
+                val schemaVersion = if (jsonObject.has("schema_version")) {
+                    jsonObject.get("schema_version").asInt
+                } else {
+                    1
+                }
+
+                val response = when (schemaVersion) {
+                    2 -> {
+                        if (jsonObject.has("response")) {
+                            val envTafseerId = jsonObject.get("tafseer_id")?.asInt ?: return@synchronized null
+                            val envSurah = jsonObject.get("surah_number")?.asInt ?: return@synchronized null
+                            val envAyah = jsonObject.get("ayah_number")?.asInt ?: return@synchronized null
+                            val provider = jsonObject.get("source_provider")?.asString
+                            if (envTafseerId != expectedTafseerId || envSurah != expectedSurah || envAyah != expectedAyah || provider.isNullOrBlank()) {
+                                return@synchronized null
+                            }
+                            gson.fromJson(jsonObject.get("response"), AyahTafseerResponse::class.java)
+                        } else {
+                            gson.fromJson(json, AyahTafseerResponse::class.java)
+                        }
+                    }
+                    1 -> {
+                        gson.fromJson(json, AyahTafseerResponse::class.java)
+                    }
+                    else -> return@synchronized null
+                }
+
                 if (response != null &&
                     !response.text.isNullOrBlank() &&
                     response.tafseerId == expectedTafseerId &&
                     response.surahNumber == expectedSurah &&
-                    response.ayahNumber == expectedAyah
+                    response.ayahNumber == expectedAyah &&
+                    response.sourceProvider.isNotBlank()
                 ) {
                     response
                 } else {
@@ -293,26 +365,55 @@ class TafseerManager(context: Context) {
         }
 
         // 5. Online Source C: Quran-Tafseer API (Strictly validating book and ayah identity)
-        try {
-            val response = api.getAyahTafseer(tafseerId, surahNumber, ayahNumber)
-            if (!response.text.isNullOrBlank()) {
-                if (response.ayahNumber == ayahNumber && (response.tafseerId == 0 || response.tafseerId == tafseerId)) {
-                    val validatedResp = AyahTafseerResponse(
-                        tafseerId = tafseerId,
-                        tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
-                        ayahUrl = response.ayahUrl,
-                        ayahNumber = ayahNumber,
-                        surahNumber = surahNumber,
-                        text = response.text.trim(),
-                        sourceProvider = "api.quran-tafseer.com",
-                        schemaVersion = 2
-                    )
-                    saveTafseerToDiskAtomic(validatedResp, cacheFile)
-                    return@withContext Result.success(validatedResp)
+        val sourceCId = when (tafseerId) {
+            1 -> 1 // ar-tafsir-muyassar
+            2 -> 2 // ar-tafseer-al-jalalayn
+            3 -> 3 // ar-tafseer-al-saadi
+            4 -> 4 // ar-tafsir-ibn-kathir
+            5 -> 5 // ar-tafsir-waseet
+            6 -> 6 // ar-tafsir-baghawi
+            7 -> 7 // ar-tafsir-qurtubi
+            8 -> 8 // ar-tafsir-tabari
+            else -> null // ID 9 (المختصر) is NOT hosted on api.quran-tafseer.com
+        }
+
+        if (sourceCId != null) {
+            try {
+                val response = api.getAyahTafseer(sourceCId, surahNumber, ayahNumber)
+                if (!response.text.isNullOrBlank()) {
+                    val idMatches = (response.tafseerId == sourceCId)
+                    val ayahMatches = (response.ayahNumber == ayahNumber)
+
+                    var urlMatches = true
+                    if (!response.ayahUrl.isNullOrBlank()) {
+                        val parts = response.ayahUrl.trim('/').split('/')
+                        if (parts.size >= 3 && parts[0] == "quran") {
+                            val urlSura = parts[1].toIntOrNull()
+                            val urlAya = parts[2].toIntOrNull()
+                            if (urlSura != null && urlAya != null) {
+                                urlMatches = (urlSura == surahNumber && urlAya == ayahNumber)
+                            }
+                        }
+                    }
+
+                    if (idMatches && ayahMatches && urlMatches) {
+                        val validatedResp = AyahTafseerResponse(
+                            tafseerId = tafseerId,
+                            tafseerName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
+                            ayahUrl = response.ayahUrl,
+                            ayahNumber = ayahNumber,
+                            surahNumber = surahNumber,
+                            text = response.text.trim(),
+                            sourceProvider = "api.quran-tafseer.com/tafseer/$sourceCId",
+                            schemaVersion = 2
+                        )
+                        saveTafseerToDiskAtomic(validatedResp, cacheFile)
+                        return@withContext Result.success(validatedResp)
+                    }
                 }
+            } catch (e: Exception) {
+                Log.d("TafseerManager", "Quran-Tafseer API attempt failed: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.d("TafseerManager", "Quran-Tafseer API attempt failed: ${e.message}")
         }
 
         // 6. When unavailable both locally and remotely: return honest failure
@@ -429,33 +530,65 @@ class TafseerManager(context: Context) {
 
     /**
      * Downloads and authenticates tafseer for a range of surahs.
+     * Rejects invalid ranges instead of silent clamping.
+     * Returns structured CompleteSuccess, PartialSuccess, or Failure.
      */
     suspend fun downloadTafseerRange(
         tafseerId: Int,
         fromSurah: Int,
         toSurah: Int,
         onProgress: (TafseerDownloadProgress) -> Unit = {}
-    ): Result<Int> = withContext(Dispatchers.IO) {
-        val start = fromSurah.coerceIn(1, QuranManifest.TOTAL_SURAHS)
-        val end = toSurah.coerceIn(start, QuranManifest.TOTAL_SURAHS)
-        var totalPersisted = 0
-        val bookName = EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
+    ): TafseerRangeResult = withContext(Dispatchers.IO) {
+        if (fromSurah !in 1..QuranManifest.TOTAL_SURAHS ||
+            toSurah !in 1..QuranManifest.TOTAL_SURAHS ||
+            fromSurah > toSurah
+        ) {
+            return@withContext TafseerRangeResult.Failure(
+                "نطاق السور غير صالح: من $fromSurah إلى $toSurah (يجب أن يكون بين 1 و ${QuranManifest.TOTAL_SURAHS})"
+            )
+        }
 
-        for (surahNum in start..end) {
+        var totalPersisted = 0
+        var successfulSurahs = 0
+        var failedSurahs = 0
+        val totalSurahsInRange = toSurah - fromSurah + 1
+
+        for (surahNum in fromSurah..toSurah) {
             ensureActive()
 
             val surahRes = downloadTafseerForSurah(tafseerId, surahNum, onProgress)
             if (surahRes.isSuccess) {
+                successfulSurahs++
                 totalPersisted += surahRes.getOrDefault(0)
+            } else {
+                failedSurahs++
             }
         }
 
-        Result.success(totalPersisted)
+        when {
+            successfulSurahs == totalSurahsInRange -> {
+                TafseerRangeResult.CompleteSuccess(
+                    totalPersistedAyahs = totalPersisted,
+                    totalSurahs = successfulSurahs
+                )
+            }
+            successfulSurahs > 0 -> {
+                TafseerRangeResult.PartialSuccess(
+                    totalPersistedAyahs = totalPersisted,
+                    successfulSurahs = successfulSurahs,
+                    failedSurahs = failedSurahs,
+                    details = "تم حفظ $successfulSurahs سورة بنجاح من أصل $totalSurahsInRange، وتعر حفظ $failedSurahs سورة."
+                )
+            }
+            else -> {
+                TafseerRangeResult.Failure("تعذر حفظ التفسير لجميع سور النطاق ($fromSurah إلى $toSurah)")
+            }
+        }
     }
 
     /**
      * Atomically writes the tafseer response to persistent disk storage using Android AtomicFile (API 24/25+ compatible).
-     * Enforces strict read-back verification.
+     * Enforces schema envelope and strict read-back verification.
      */
     fun saveTafseerToDiskAtomic(response: AyahTafseerResponse, targetFile: File): TafseerPersistenceResult {
         if (response.text.isBlank()) {
@@ -466,7 +599,17 @@ class TafseerManager(context: Context) {
             val atomicFile = android.util.AtomicFile(targetFile)
             var fos: FileOutputStream? = null
             try {
-                val json = gson.toJson(response)
+                val envelope = TafseerStorageEnvelope(
+                    schemaVersion = 2,
+                    tafseerId = response.tafseerId,
+                    surahNumber = response.surahNumber,
+                    ayahNumber = response.ayahNumber,
+                    sourceProvider = response.sourceProvider,
+                    datasetVersion = "1430H",
+                    timestamp = System.currentTimeMillis(),
+                    response = response
+                )
+                val json = gson.toJson(envelope)
                 val bytes = json.toByteArray(Charsets.UTF_8)
                 fos = atomicFile.startWrite()
                 fos.write(bytes)
