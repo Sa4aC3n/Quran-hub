@@ -1,31 +1,32 @@
 package com.example.data.model
 
+import com.google.gson.annotations.SerializedName
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class Ayah(
-    @Json(name = "number") val number: Int = 1,
-    @Json(name = "numberInSurah") val numberInSurah: Int = 1,
-    @Json(name = "text") val text: String = "",
-    @Json(name = "juz") val juz: Int = 1,
-    @Json(name = "manzil") val manzil: Int = 1,
-    @Json(name = "page") val page: Int = 1,
-    @Json(name = "ruku") val ruku: Int = 1,
-    @Json(name = "hizbQuarter") val hizbQuarter: Int = 1,
-    @Json(name = "sajda") val sajda: Boolean = false,
-    val tafsir: String? = null
+    @SerializedName("number") @Json(name = "number") val number: Int = 1,
+    @SerializedName("numberInSurah", alternate = ["number_in_surah"]) @Json(name = "numberInSurah") val numberInSurah: Int = 1,
+    @SerializedName("text") @Json(name = "text") val text: String = "",
+    @SerializedName("juz") @Json(name = "juz") val juz: Int = 1,
+    @SerializedName("manzil") @Json(name = "manzil") val manzil: Int = 1,
+    @SerializedName("page") @Json(name = "page") val page: Int = 1,
+    @SerializedName("ruku") @Json(name = "ruku") val ruku: Int = 1,
+    @SerializedName("hizbQuarter", alternate = ["hizb_quarter"]) @Json(name = "hizbQuarter") val hizbQuarter: Int = 1,
+    @SerializedName("sajda") @Json(name = "sajda") val sajda: Boolean = false,
+    @SerializedName("tafsir") val tafsir: String? = null
 )
 
 @JsonClass(generateAdapter = true)
 data class SurahText(
-    @Json(name = "number") val number: Int = 1,
-    @Json(name = "name") val name: String = "",
-    @Json(name = "englishName") val englishName: String = "",
-    @Json(name = "englishNameTranslation") val englishNameTranslation: String = "",
-    @Json(name = "revelationType") val revelationType: String = "Meccan",
-    @Json(name = "numberOfAyahs") val numberOfAyahs: Int = 7,
-    @Json(name = "ayahs") val ayahs: List<Ayah> = emptyList()
+    @SerializedName("number") @Json(name = "number") val number: Int = 1,
+    @SerializedName("name") @Json(name = "name") val name: String = "",
+    @SerializedName("englishName", alternate = ["english_name"]) @Json(name = "englishName") val englishName: String = "",
+    @SerializedName("englishNameTranslation", alternate = ["english_name_translation"]) @Json(name = "englishNameTranslation") val englishNameTranslation: String = "",
+    @SerializedName("revelationType", alternate = ["revelation_type"]) @Json(name = "revelationType") val revelationType: String = "Meccan",
+    @SerializedName("numberOfAyahs", alternate = ["number_of_ayahs"]) @Json(name = "numberOfAyahs") val numberOfAyahs: Int = 7,
+    @SerializedName("ayahs") @Json(name = "ayahs") val ayahs: List<Ayah> = emptyList()
 )
 
 data class QuranBookmark(
