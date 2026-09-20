@@ -154,6 +154,7 @@ fun QuranReaderScreen(
     onSelectTafseer: (Int) -> Unit = {},
     onLoadTafseer: (Ayah, Int, Int?) -> Unit = { _, _, _ -> },
     onDownloadSurahTafseer: ((tafseerId: Int, surahNumber: Int) -> Unit)? = null,
+    onCancelDownloadSurahTafseer: (() -> Unit)? = null,
     onAddBookmark: (surahNumber: Int, surahName: String, ayahNumber: Int, page: Int, juz: Int, text: String, note: String) -> Unit,
     onDeleteBookmark: (String) -> Unit,
     onPlaySurahAudio: (Surah, Reciter?) -> Unit,
@@ -942,6 +943,10 @@ fun QuranReaderScreen(
                         tafseerDownloadProgress.isDownloading &&
                         tafseerDownloadProgress.tafseerId == selectedTafseerId &&
                         tafseerDownloadProgress.surahNumber == activeSurahNum
+                    val isCurrentCompleted = tafseerDownloadProgress != null &&
+                        tafseerDownloadProgress.isCompleted &&
+                        tafseerDownloadProgress.tafseerId == selectedTafseerId &&
+                        tafseerDownloadProgress.surahNumber == activeSurahNum
 
                     Spacer(modifier = Modifier.height(10.dp))
                     if (isCurrentDownloading) {
@@ -954,12 +959,29 @@ fun QuranReaderScreen(
                             colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.12f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "جاري حفظ تفسير (${tafseerDownloadProgress.tafseerName}) لسورة ${tafseerDownloadProgress.surahName}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = accentColor
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "جاري حفظ تفسير (${tafseerDownloadProgress.tafseerName}) لسورة ${tafseerDownloadProgress.surahName}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (onCancelDownloadSurahTafseer != null) {
+                                        TextButton(
+                                            onClick = onCancelDownloadSurahTafseer,
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "إلغاء التنزيل", modifier = Modifier.size(14.dp), tint = accentColor)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("إلغاء", fontSize = 11.sp, color = accentColor)
+                                        }
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "تم حفظ $persisted من أصل $total آية (${(fraction * 100).toInt()}%)",
@@ -975,6 +997,33 @@ fun QuranReaderScreen(
                                         .clip(RoundedCornerShape(3.dp)),
                                     color = accentColor,
                                     trackColor = textColor.copy(alpha = 0.15f)
+                                )
+                            }
+                        }
+                    } else if (isCurrentCompleted) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.08f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "تفسير (${tafseerDownloadProgress.tafseerName}) لسورة ${currentSurahMeta?.name ?: ""} محفوظ كاملاً دون اتصال",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = accentColor
                                 )
                             }
                         }

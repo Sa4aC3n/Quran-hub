@@ -672,33 +672,73 @@ class QuranRepository(
     }
 
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var themePipelineJob: kotlinx.coroutines.Job? = null
 
     private val _themeInitializationState = MutableStateFlow<ThemeInitializationState>(ThemeInitializationState.Loading)
     val themeInitializationState: StateFlow<ThemeInitializationState> = _themeInitializationState.asStateFlow()
 
-    val appThemeFlow: Flow<String> = flow {
-        // 1. Emit verified local mirror immediately for zero-flicker cold-start
-        val initialTheme = getCachedAppTheme()
-        emit(initialTheme)
+    init {
+        initializeThemePipeline()
+    }
 
-        // 2. Continuously observe authoritative DataStore
-        context.dataStore.data
-            .catch { e ->
-                Log.w("QuranRepository", "DataStore theme stream error", e)
+    fun initializeThemePipeline(timeoutMs: Long = 2000L) {
+        themePipelineJob?.cancel()
+        themePipelineJob = repoScope.launch {
+            try {
+                withTimeout(timeoutMs) {
+                    val prefs = context.dataStore.data.first()
+                    val raw = prefs[KEY_APP_THEME]
+                    val validatedTheme = when (raw) {
+                        "light", "dark", "system" -> raw
+                        null -> "system"
+                        else -> "system"
+                    }
+                    updateMirrorCache(validatedTheme)
+                    _themeInitializationState.value = ThemeInitializationState.Ready(validatedTheme)
+                }
+            } catch (e: Exception) {
+                Log.w("QuranRepository", "Initial theme read timed out or failed, falling back to mirror", e)
                 val fallback = getCachedAppTheme()
                 _themeInitializationState.value = ThemeInitializationState.ReadError(fallback)
             }
-            .collect { prefs ->
-                val raw = prefs[KEY_APP_THEME]
-                val validatedTheme = when (raw) {
-                    "light", "dark", "system" -> raw
-                    null -> "system"
-                    else -> "system"
-                }
-                updateMirrorCache(validatedTheme)
-                _themeInitializationState.value = ThemeInitializationState.Ready(validatedTheme)
-                emit(validatedTheme)
+
+            try {
+                context.dataStore.data
+                    .catch { e ->
+                        Log.w("QuranRepository", "DataStore continuous theme stream error", e)
+                        val fallback = getCachedAppTheme()
+                        _themeInitializationState.value = ThemeInitializationState.ReadError(fallback)
+                    }
+                    .collect { prefs ->
+                        val raw = prefs[KEY_APP_THEME]
+                        val validatedTheme = when (raw) {
+                            "light", "dark", "system" -> raw
+                            null -> "system"
+                            else -> "system"
+                        }
+                        updateMirrorCache(validatedTheme)
+                        _themeInitializationState.value = ThemeInitializationState.Ready(validatedTheme)
+                    }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.w("QuranRepository", "Theme observation collection terminated", e)
+                val fallback = getCachedAppTheme()
+                _themeInitializationState.value = ThemeInitializationState.ReadError(fallback)
             }
+        }
+    }
+
+    fun retryThemeInitialization() {
+        _themeInitializationState.value = ThemeInitializationState.Loading
+        initializeThemePipeline()
+    }
+
+    val appThemeFlow: Flow<String> = _themeInitializationState.map { state ->
+        when (state) {
+            is ThemeInitializationState.Ready -> state.theme
+            is ThemeInitializationState.ReadError -> state.fallbackTheme
+            is ThemeInitializationState.Loading -> getCachedAppTheme()
+        }
     }.distinctUntilChanged()
 
     private suspend fun updateMirrorCache(theme: String) = withContext(Dispatchers.IO) {

@@ -21,16 +21,24 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import com.example.data.local.ThemeInitializationState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -136,21 +144,93 @@ class MainActivity : ComponentActivity() {
                 handleHaramIntent(intent, viewModel)
             }
 
-            val activeTheme = when (val state = themeInitState) {
-                is com.example.data.local.ThemeInitializationState.Ready -> state.theme
-                is com.example.data.local.ThemeInitializationState.ReadError -> state.fallbackTheme
-                is com.example.data.local.ThemeInitializationState.Loading -> appTheme
-                else -> appTheme
-            }
-
-            val isDark = when (activeTheme) {
-                "dark" -> true
-                "light" -> false
-                else -> isSystemInDarkTheme()
-            }
-
-            MyApplicationTheme(darkTheme = isDark) {
-                QuranAppRoot(viewModel = viewModel)
+            when (val state = themeInitState) {
+                is ThemeInitializationState.Loading -> {
+                    val isDark = when (appTheme) {
+                        "dark" -> true
+                        "light" -> false
+                        else -> isSystemInDarkTheme()
+                    }
+                    MyApplicationTheme(darkTheme = isDark) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag("theme_loading_screen"),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.testTag("theme_loading_indicator"),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "جاري تهيئة القرآن الكريم...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                is ThemeInitializationState.Ready -> {
+                    val isDark = when (state.theme) {
+                        "dark" -> true
+                        "light" -> false
+                        else -> isSystemInDarkTheme()
+                    }
+                    MyApplicationTheme(darkTheme = isDark) {
+                        QuranAppRoot(viewModel = viewModel)
+                    }
+                }
+                is ThemeInitializationState.ReadError -> {
+                    val isDark = when (state.fallbackTheme) {
+                        "dark" -> true
+                        "light" -> false
+                        else -> isSystemInDarkTheme()
+                    }
+                    MyApplicationTheme(darkTheme = isDark) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("theme_error_banner"),
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "تعذر قراءة تفضيل المظهر، تم استخدام المظهر الاحتياطي",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    TextButton(
+                                        onClick = { viewModel.retryThemeInitialization() },
+                                        modifier = Modifier.testTag("theme_retry_button")
+                                    ) {
+                                        Text("إعادة المحاولة", color = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
+                                }
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                QuranAppRoot(viewModel = viewModel)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -548,6 +628,9 @@ fun QuranAppRoot(
                                 }
 
                                 is Screen.QuranReader -> {
+                                    LaunchedEffect(screen.surahNumber, selectedTafseerId) {
+                                        viewModel.checkTafseerStatusForSurah(selectedTafseerId, screen.surahNumber)
+                                    }
                                     QuranReaderScreen(
                                         currentSurahNumber = screen.surahNumber,
                                         allSurahs = surahs,
@@ -578,6 +661,9 @@ fun QuranAppRoot(
                                         },
                                         onDownloadSurahTafseer = { tafseerId, surahNum ->
                                             viewModel.downloadTafseerForSurah(tafseerId, surahNum)
+                                        },
+                                        onCancelDownloadSurahTafseer = {
+                                            viewModel.cancelTafseerDownload()
                                         },
                                         onAddBookmark = { sNum, sName, aNum, page, juz, text, note ->
                                             viewModel.addBookmark(sNum, sName, aNum, page, juz, text, note)

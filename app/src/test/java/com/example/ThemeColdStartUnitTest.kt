@@ -7,6 +7,8 @@ import com.example.data.local.QuranRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,24 +18,29 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class ThemeColdStartUnitTest {
 
-    @Test
-    fun testThemeColdStart_DefaultIsSystem() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val repository = QuranRepository(context, AudioDownloadManager(context))
+    private lateinit var context: Context
+    private lateinit var repository: QuranRepository
 
-        // Reset prefs for clean test
+    @Before
+    fun setup() = runBlocking {
+        context = ApplicationProvider.getApplicationContext<Context>()
         context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
             .edit().clear().commit()
+        repository = QuranRepository(context, AudioDownloadManager(context))
+        repository.setAppTheme("system")
+    }
 
-        val cachedTheme = repository.getCachedAppTheme()
+    @Test
+    fun testThemeColdStart_DefaultIsSystem() = runBlocking {
+        context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+        val freshRepo = QuranRepository(context, AudioDownloadManager(context))
+        val cachedTheme = freshRepo.getCachedAppTheme()
         assertEquals("system", cachedTheme)
     }
 
     @Test
     fun testThemeColdStart_InstantRestoreWithoutAsyncDelay() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val repository = QuranRepository(context, AudioDownloadManager(context))
-
         // 1. User selects "light" theme
         repository.setAppTheme("light")
         assertEquals("light", repository.getCachedAppTheme())
@@ -49,9 +56,6 @@ class ThemeColdStartUnitTest {
 
     @Test
     fun testUpgradeScenario_DataStoreHasDark_MirrorMissing() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val repository = QuranRepository(context, AudioDownloadManager(context))
-
         // Set theme in DataStore first
         repository.setAppTheme("dark")
 
@@ -63,9 +67,10 @@ class ThemeColdStartUnitTest {
         val initialCached = repository.getCachedAppTheme()
         assertEquals("system", initialCached)
 
-        // Flow collection from DataStore authoritatively recovers "dark" and reconciles the mirror
-        val flowValue = repository.appThemeFlow.first { it == "dark" }
-        assertEquals("dark", flowValue)
+        // Pipeline reinitialization recovers "dark" and reconciles the mirror
+        repository.retryThemeInitialization()
+        val state = repository.themeInitializationState.first { it is com.example.data.local.ThemeInitializationState.Ready && it.theme == "dark" }
+        assertEquals("dark", (state as com.example.data.local.ThemeInitializationState.Ready).theme)
 
         // Verify mirror is now populated with "dark"
         val healedCached = repository.getCachedAppTheme()
@@ -74,18 +79,12 @@ class ThemeColdStartUnitTest {
 
     @Test
     fun testInvalidTheme_FallbackToSystem() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val repository = QuranRepository(context, AudioDownloadManager(context))
-
         repository.setAppTheme("invalid_theme_value")
         assertEquals("system", repository.getCachedAppTheme())
     }
 
     @Test
     fun testMirrorMismatch_DataStoreReconcilesMirror() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val repository = QuranRepository(context, AudioDownloadManager(context))
-
         // Legitimate setting in DataStore
         repository.setAppTheme("light")
 
@@ -93,13 +92,31 @@ class ThemeColdStartUnitTest {
         context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
             .edit().putString("app_theme", "corrupted_stale").commit()
 
-        // When DataStore flow is collected, it validates and heals the mirror
-        val flowValue = repository.appThemeFlow.first { it == "light" }
-        assertEquals("light", flowValue)
+        // Reconcile via retryThemeInitialization
+        repository.retryThemeInitialization()
+        val state = repository.themeInitializationState.first { it is com.example.data.local.ThemeInitializationState.Ready && it.theme == "light" }
+        assertEquals("light", (state as com.example.data.local.ThemeInitializationState.Ready).theme)
 
         // Verify mirror was healed
         val healedCached = context.getSharedPreferences("app_theme_prefs", Context.MODE_PRIVATE)
             .getString("app_theme", null)
         assertEquals("light", healedCached)
+    }
+
+    @Test
+    fun testThemeInitializationState_ReachesReady() = runBlocking {
+        repository.setAppTheme("dark")
+
+        val state = repository.themeInitializationState.first { it is com.example.data.local.ThemeInitializationState.Ready }
+        assertTrue(state is com.example.data.local.ThemeInitializationState.Ready)
+        assertEquals("dark", (state as com.example.data.local.ThemeInitializationState.Ready).theme)
+    }
+
+    @Test
+    fun testRetryThemeInitialization_RecoversState() = runBlocking {
+        repository.retryThemeInitialization()
+
+        val state = repository.themeInitializationState.first { it is com.example.data.local.ThemeInitializationState.Ready }
+        assertTrue(state is com.example.data.local.ThemeInitializationState.Ready)
     }
 }

@@ -5,6 +5,7 @@ import com.example.data.model.Ayah
 import com.example.data.model.SurahText
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -25,13 +26,20 @@ class QuranTextUnavailableException(val surahNumber: Int, message: String) : Exc
  * Storage envelope for authentic Quran surahs ensuring schema evolution safety.
  */
 data class SurahStorageEnvelope(
-    val schemaVersion: Int = 2,
-    val surahNumber: Int,
+    @SerializedName("schema_version", alternate = ["schemaVersion"]) val schemaVersion: Int = 2,
+    @SerializedName("surah_number", alternate = ["surahNumber"]) val surahNumber: Int,
+    @SerializedName("source_provider", alternate = ["sourceProvider"]) val sourceProvider: String,
+    @SerializedName("edition_identifier", alternate = ["editionIdentifier"]) val editionIdentifier: String,
+    @SerializedName("dataset_version", alternate = ["datasetVersion"]) val datasetVersion: String,
+    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis(),
+    @SerializedName("surah_text", alternate = ["surahText"]) val surahText: SurahText
+)
+
+data class CachedSurah(
+    val surahText: SurahText,
     val sourceProvider: String,
     val editionIdentifier: String,
-    val datasetVersion: String,
-    val timestamp: Long = System.currentTimeMillis(),
-    val surahText: SurahText
+    val datasetVersion: String
 )
 
 data class FetchedSurahPayload(
@@ -48,7 +56,7 @@ data class FetchedSurahPayload(
  */
 class QuranTextProvider(private val context: Context) {
 
-    private val cache = ConcurrentHashMap<Int, SurahText>()
+    private val cache = ConcurrentHashMap<Int, CachedSurah>()
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
@@ -97,30 +105,41 @@ class QuranTextProvider(private val context: Context) {
                     null
                 } ?: return@synchronized null
 
-                if (!jsonObject.has("schemaVersion")) {
-                    return@synchronized null // Reject unversioned content
+                val schemaVersion = when {
+                    jsonObject.has("schema_version") -> jsonObject.get("schema_version").asInt
+                    jsonObject.has("schemaVersion") -> jsonObject.get("schemaVersion").asInt
+                    else -> return@synchronized null // Reject unversioned content
                 }
-                val schemaVersion = jsonObject.get("schemaVersion").asInt
-                val surah = when (schemaVersion) {
-                    2 -> {
-                        val envSurahNum = jsonObject.get("surahNumber")?.asInt ?: return@synchronized null
-                        if (envSurahNum != expectedSurahNumber) return@synchronized null
-                        val provider = jsonObject.get("sourceProvider")?.asString
-                        if (provider.isNullOrBlank()) return@synchronized null
-                        val surahTextElem = jsonObject.get("surahText") ?: return@synchronized null
-                        gson.fromJson(surahTextElem, SurahText::class.java)
-                    }
-                    1 -> {
-                        val surahTextElem = jsonObject.get("surahText") ?: return@synchronized null
-                        gson.fromJson(surahTextElem, SurahText::class.java)
-                    }
-                    else -> return@synchronized null // Reject unsupported schemas
+
+                if (schemaVersion != 2) {
+                    return@synchronized null // Reject unsupported schemas and v1 unverified migrations
                 }
+
+                val envSurahNum = (jsonObject.get("surah_number") ?: jsonObject.get("surahNumber"))?.asInt ?: return@synchronized null
+                if (envSurahNum != expectedSurahNumber) return@synchronized null
+
+                val provider = (jsonObject.get("source_provider") ?: jsonObject.get("sourceProvider"))?.asString
+                if (provider.isNullOrBlank()) return@synchronized null
+
+                val edition = (jsonObject.get("edition_identifier") ?: jsonObject.get("editionIdentifier"))?.asString
+                if (edition.isNullOrBlank()) return@synchronized null
+
+                val datasetVer = (jsonObject.get("dataset_version") ?: jsonObject.get("datasetVersion"))?.asString
+                if (datasetVer.isNullOrBlank()) return@synchronized null
+
+                val surahTextElem = jsonObject.get("surah_text") ?: jsonObject.get("surahText") ?: return@synchronized null
+                val surah = gson.fromJson(surahTextElem, SurahText::class.java)
 
                 if (surah != null &&
                     surah.number == expectedSurahNumber &&
                     QuranManifest.validateSurah(surah, expectedSurahNumber) is QuranManifest.ValidationResult.Valid
                 ) {
+                    cache[expectedSurahNumber] = CachedSurah(
+                        surahText = surah,
+                        sourceProvider = provider,
+                        editionIdentifier = edition,
+                        datasetVersion = datasetVer
+                    )
                     surah
                 } else {
                     null
@@ -177,8 +196,14 @@ class QuranTextProvider(private val context: Context) {
         }
 
         // 2. If present in memory cache, attempt to persist it and verify
-        cache[surahNumber]?.let { memSurah ->
-            val result = saveSurahToDiskAtomic(memSurah, expectedSurahNumber)
+        cache[surahNumber]?.let { memCached ->
+            val result = saveSurahToDiskAtomic(
+                surah = memCached.surahText,
+                expectedSurahNumber = expectedSurahNumber,
+                sourceProvider = memCached.sourceProvider,
+                editionIdentifier = memCached.editionIdentifier,
+                datasetVersion = memCached.datasetVersion
+            )
             if (result is PersistenceResult.Success) {
                 return@withContext result
             }
@@ -228,8 +253,8 @@ class QuranTextProvider(private val context: Context) {
 
         // 1. Check in-memory verified cache
         cache[surahNumber]?.let { cached ->
-            if (QuranManifest.validateSurah(cached, surahNumber) is QuranManifest.ValidationResult.Valid) {
-                return@withContext cached
+            if (QuranManifest.validateSurah(cached.surahText, surahNumber) is QuranManifest.ValidationResult.Valid) {
+                return@withContext cached.surahText
             } else {
                 cache.remove(surahNumber)
             }
@@ -239,21 +264,28 @@ class QuranTextProvider(private val context: Context) {
         val localFile = File(storageDir, "surah_$surahNumber.json")
         val localSurah = readSurahFromFile(localFile, surahNumber)
         if (localSurah != null) {
-            cache[surahNumber] = localSurah
             return@withContext localSurah
         }
 
         // 3. Check bundled authentic curated baseline for offline opening
         loadCuratedBundledSurah(surahNumber)?.let { bundled ->
             if (QuranManifest.validateSurah(bundled, surahNumber) is QuranManifest.ValidationResult.Valid) {
+                val provider = "King Fahd Complex for Printing the Holy Quran"
+                val edition = "Mushaf al-Madinah 1430H"
+                val version = "1430H-v1"
                 saveSurahToDiskAtomic(
                     surah = bundled,
                     expectedSurahNumber = surahNumber,
-                    sourceProvider = "King Fahd Complex for Printing the Holy Quran",
-                    editionIdentifier = "Mushaf al-Madinah 1430H",
-                    datasetVersion = "1430H-v1"
+                    sourceProvider = provider,
+                    editionIdentifier = edition,
+                    datasetVersion = version
                 )
-                cache[surahNumber] = bundled
+                cache[surahNumber] = CachedSurah(
+                    surahText = bundled,
+                    sourceProvider = provider,
+                    editionIdentifier = edition,
+                    datasetVersion = version
+                )
                 return@withContext bundled
             }
         }
@@ -270,7 +302,12 @@ class QuranTextProvider(private val context: Context) {
                     editionIdentifier = fetchedPayload.editionIdentifier,
                     datasetVersion = fetchedPayload.datasetVersion
                 )
-                cache[surahNumber] = fetchedPayload.surahText
+                cache[surahNumber] = CachedSurah(
+                    surahText = fetchedPayload.surahText,
+                    sourceProvider = fetchedPayload.sourceProvider,
+                    editionIdentifier = fetchedPayload.editionIdentifier,
+                    datasetVersion = fetchedPayload.datasetVersion
+                )
                 return@withContext fetchedPayload.surahText
             }
         }
@@ -402,11 +439,14 @@ class QuranTextProvider(private val context: Context) {
      */
     fun saveSurahToDiskAtomic(
         surah: SurahText,
-        expectedSurahNumber: Int = surah.number,
-        sourceProvider: String = "King Fahd Complex for Printing the Holy Quran",
-        editionIdentifier: String = "Mushaf al-Madinah 1430H",
-        datasetVersion: String = "1430H-v1"
+        expectedSurahNumber: Int,
+        sourceProvider: String,
+        editionIdentifier: String,
+        datasetVersion: String
     ): PersistenceResult {
+        if (sourceProvider.isBlank() || editionIdentifier.isBlank() || datasetVersion.isBlank()) {
+            return PersistenceResult.Failure(surah.number, "بيانات مصدر السورة (المزود/الطبعة/الإصدار) غير مكتملة")
+        }
         val validation = QuranManifest.validateSurah(surah, expectedSurahNumber)
         if (validation !is QuranManifest.ValidationResult.Valid) {
             val reason = (validation as? QuranManifest.ValidationResult.Invalid)?.reason ?: "بيانات السورة غير صالحة"
@@ -447,7 +487,12 @@ class QuranTextProvider(private val context: Context) {
             // Read-back verification from targetFile to ensure full integrity
             val readBack = readSurahFromFile(targetFile, expectedSurahNumber)
             return if (readBack != null) {
-                cache[surah.number] = readBack
+                cache[surah.number] = CachedSurah(
+                    surahText = readBack,
+                    sourceProvider = sourceProvider,
+                    editionIdentifier = editionIdentifier,
+                    datasetVersion = datasetVersion
+                )
                 PersistenceResult.Success(surah.number, targetFile)
             } else {
                 PersistenceResult.Failure(surah.number, "فشل التحقق من صحة الملف بعد الحفظ الدائم والقراءة")

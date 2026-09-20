@@ -56,6 +56,7 @@ import com.example.playback.AudioPlayerManager
 import com.example.prayer.manager.PrayerManager
 import com.example.watch.MeetingModeManager
 import com.example.watch.SmartwatchBridgeManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -259,6 +260,9 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
     private val _tafseerDownloadProgress = MutableStateFlow<TafseerDownloadProgress?>(null)
     val tafseerDownloadProgress: StateFlow<TafseerDownloadProgress?> = _tafseerDownloadProgress.asStateFlow()
     private var tafseerDownloadJob: Job? = null
+    private var tafseerLoadJob: Job? = null
+    private val tafseerRequestId = java.util.concurrent.atomic.AtomicLong(0)
+    private val tafseerJobCounter = java.util.concurrent.atomic.AtomicLong(0)
 
     // Read-Along Audio & Word Timing
     private val _currentSurahTiming = MutableStateFlow<SurahTiming?>(null)
@@ -1183,70 +1187,95 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
         val tafseerName = _availableTafseers.value.find { it.id == tafseerId }?.name ?: "التفسير الميسر"
         _selectedAyahForTafsir.value = ayah
 
-        viewModelScope.launch {
-            _tafseerUiState.value = TafseerUiState(
-                isLoading = true,
-                tafseerId = tafseerId,
-                tafseerName = tafseerName,
-                surahNumber = surahNumber,
-                ayahNumber = ayah.numberInSurah
-            )
+        tafseerLoadJob?.cancel()
+        val currentRequestId = tafseerRequestId.incrementAndGet()
 
-            val result = tafseerManager.getAyahTafseer(
-                tafseerId = tafseerId,
-                surahNumber = surahNumber,
-                ayahNumber = ayah.numberInSurah,
-                cleanAyahText = ayah.text
-            )
-
-            result.onSuccess { response ->
+        tafseerLoadJob = viewModelScope.launch {
+            try {
                 _tafseerUiState.value = TafseerUiState(
-                    isLoading = false,
-                    tafseerText = response.text,
-                    tafseerName = response.tafseerName.ifBlank { tafseerName },
+                    isLoading = true,
                     tafseerId = tafseerId,
-                    surahNumber = surahNumber,
-                    ayahNumber = ayah.numberInSurah,
-                    errorMessage = null
-                )
-            }.onFailure { err ->
-                _tafseerUiState.value = TafseerUiState(
-                    isLoading = false,
-                    tafseerText = null,
                     tafseerName = tafseerName,
+                    surahNumber = surahNumber,
+                    ayahNumber = ayah.numberInSurah
+                )
+
+                val result = tafseerManager.getAyahTafseer(
                     tafseerId = tafseerId,
                     surahNumber = surahNumber,
                     ayahNumber = ayah.numberInSurah,
-                    errorMessage = err.message ?: "تعذر جلب التفسير"
+                    cleanAyahText = ayah.text
                 )
+
+                if (tafseerRequestId.get() != currentRequestId) return@launch
+
+                result.onSuccess { response ->
+                    if (tafseerRequestId.get() == currentRequestId) {
+                        _tafseerUiState.value = TafseerUiState(
+                            isLoading = false,
+                            tafseerText = response.text,
+                            tafseerName = response.tafseerName.ifBlank { tafseerName },
+                            tafseerId = tafseerId,
+                            surahNumber = surahNumber,
+                            ayahNumber = ayah.numberInSurah,
+                            errorMessage = null
+                        )
+                    }
+                }.onFailure { err ->
+                    if (tafseerRequestId.get() == currentRequestId) {
+                        _tafseerUiState.value = TafseerUiState(
+                            isLoading = false,
+                            tafseerText = null,
+                            tafseerName = tafseerName,
+                            tafseerId = tafseerId,
+                            surahNumber = surahNumber,
+                            ayahNumber = ayah.numberInSurah,
+                            errorMessage = err.message ?: "تعذر جلب التفسير"
+                        )
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             }
         }
     }
 
     fun downloadTafseerForSurah(tafseerId: Int, surahNumber: Int) {
         tafseerDownloadJob?.cancel()
+        val currentJobId = tafseerJobCounter.incrementAndGet()
+
         tafseerDownloadJob = viewModelScope.launch {
             val bookName = com.example.data.provider.EmbeddedTafseerRepository.getTafseerBookName(tafseerId)
             val surahName = com.example.data.provider.QuranManifest.getSurahNameArabic(surahNumber)
             _snackbarMessage.emit("بدء حفظ تفسير ($bookName) لسورة $surahName للاستخدام دون اتصال...")
-            val result = tafseerManager.downloadTafseerForSurah(
-                tafseerId = tafseerId,
-                surahNumber = surahNumber,
-                onProgress = { progress ->
-                    _tafseerDownloadProgress.value = progress
+
+            try {
+                val result = tafseerManager.downloadTafseerForSurah(
+                    tafseerId = tafseerId,
+                    surahNumber = surahNumber,
+                    onProgress = { progress ->
+                        if (tafseerJobCounter.get() == currentJobId) {
+                            _tafseerDownloadProgress.value = progress
+                        }
+                    }
+                )
+                if (tafseerJobCounter.get() == currentJobId) {
+                    result.onSuccess { count ->
+                        _snackbarMessage.emit("تم حفظ تفسير ($bookName) لسورة $surahName كاملاً ($count آية) دون اتصال")
+                    }.onFailure { err ->
+                        if (err !is kotlinx.coroutines.CancellationException) {
+                            _snackbarMessage.emit(err.message ?: "فشل استكمال حفظ التفسير")
+                        }
+                    }
                 }
-            )
-            result.onSuccess { count ->
-                _snackbarMessage.emit("تم حفظ تفسير ($bookName) لسورة $surahName كاملاً ($count آية) دون اتصال")
-            }.onFailure { err ->
-                if (err !is kotlinx.coroutines.CancellationException) {
-                    _snackbarMessage.emit(err.message ?: "فشل استكمال حفظ التفسير")
-                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             }
         }
     }
 
     fun cancelTafseerDownload() {
+        tafseerJobCounter.incrementAndGet()
         tafseerDownloadJob?.cancel()
         tafseerDownloadJob = null
         tafseerManager.cancelTafseerDownload()
@@ -1254,6 +1283,31 @@ class QuranViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _snackbarMessage.emit("تم إلغاء تنزيل التفسير")
         }
+    }
+
+    fun checkTafseerStatusForSurah(tafseerId: Int, surahNumber: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = tafseerManager.getPersistedTafseerAyahsCount(tafseerId, surahNumber)
+            val total = com.example.data.provider.QuranManifest.getCanonicalAyahCount(surahNumber)
+            if (count > 0 && (_tafseerDownloadProgress.value == null || !_tafseerDownloadProgress.value!!.isDownloading)) {
+                _tafseerDownloadProgress.value = TafseerDownloadProgress(
+                    tafseerId = tafseerId,
+                    tafseerName = com.example.data.provider.EmbeddedTafseerRepository.getTafseerBookName(tafseerId),
+                    surahNumber = surahNumber,
+                    surahName = com.example.data.provider.QuranManifest.getSurahNameArabic(surahNumber),
+                    totalAyahs = total,
+                    attemptedAyahs = count,
+                    persistedAyahs = count,
+                    failedAyahs = 0,
+                    isCompleted = (count == total),
+                    isDownloading = false
+                )
+            }
+        }
+    }
+
+    fun retryThemeInitialization() {
+        repository.retryThemeInitialization()
     }
 
     fun isTafseerPersisted(tafseerId: Int, surahNumber: Int, ayahNumber: Int): Boolean {
